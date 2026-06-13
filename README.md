@@ -37,3 +37,5 @@
  24. Artinya kepala sekolah bisa membuat kode qr khusus agar tiap wali kelas bisa mengakses roomnya sendiri untuk menginput penilaian, tiap kode qr otomatis mengarahkan ke room khusus kelompok walikelas tersebut
  25. Jika rekap penilaian sudah muncul dan ditandatangani oleh kepala sekolah, sistem otomatis membuat sertifikat bagi masing masing peserta, dan harus ditanda tangani oleh kepala sekolah, wali kelas yang bersangkutan, dan kepala divisi MAI. Jika sudah ditandatangani oleh ketiganya maka akan muncul link yang bisa dibagikan kepeserta berformat pdf untuk didownload dan dicetak
  26. Untuk data vektor, jika sudah ada, lalu sistem meminta data itu lagi, artinya data vektor sebelumnya berfungsi sebagai pembanding untuk memastikan bahwa yang saat ini adalah orang yang sama, tapi tetap ada toleransi ketidakmiripan yang wajar
+ 27. Kepala sekolah memiliki wewenang untuk membypass jika toleransi vektor salah
+ 28. Izinkan mengganti tanda tangan atas izin kepala sekolah

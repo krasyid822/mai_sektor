@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Rules for App Settings / Sektor configuration
+    match /config/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for registered identities (students, teachers, presenters)
+    match /identities/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for Walikelas groupings
+    match /groups/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for attendance logs
+    match /attendance/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for Pretest and Posttest evaluations
+    match /tests/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for Room Qudwah evaluations
+    match /evaluations/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for PDF uploads stored as base64
+    match /files/{document} {
+      allow read, write: if true;
+    }
+  }
+}

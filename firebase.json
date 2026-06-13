@@ -1,1 +1,31 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"mai-sektor","configurations":{"web":"1:42739193557:web:ddd4b3ebfb3a6f7719745c"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "mai-sektor",
+          "configurations": {
+            "web": "1:42739193557:web:ddd4b3ebfb3a6f7719745c"
+          }
+        }
+      }
+    }
+  }
+}
