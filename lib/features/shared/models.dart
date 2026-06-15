@@ -247,6 +247,10 @@ class AppConfig {
   final String? kepalaSekolahNim;
   final String? kadivNim;
   final bool kadivIsKepsek;
+  final bool enableGeolocation;
+  final double targetLatitude;
+  final double targetLongitude;
+  final double targetRadius;
 
   AppConfig({
     required this.activeMode,
@@ -264,6 +268,10 @@ class AppConfig {
     this.kepalaSekolahNim,
     this.kadivNim,
     this.kadivIsKepsek = false,
+    this.enableGeolocation = false,
+    this.targetLatitude = 0.0,
+    this.targetLongitude = 0.0,
+    this.targetRadius = 100.0,
   });
 
   Map<String, dynamic> toMap() {
@@ -283,6 +291,10 @@ class AppConfig {
       'kepalaSekolahNim': kepalaSekolahNim,
       'kadivNim': kadivNim,
       'kadivIsKepsek': kadivIsKepsek,
+      'enableGeolocation': enableGeolocation,
+      'targetLatitude': targetLatitude,
+      'targetLongitude': targetLongitude,
+      'targetRadius': targetRadius,
     };
   }
 
@@ -303,6 +315,10 @@ class AppConfig {
       kepalaSekolahNim: map['kepalaSekolahNim'],
       kadivNim: map['kadivNim'],
       kadivIsKepsek: map['kadivIsKepsek'] ?? false,
+      enableGeolocation: map['enableGeolocation'] ?? false,
+      targetLatitude: (map['targetLatitude'] as num?)?.toDouble() ?? 0.0,
+      targetLongitude: (map['targetLongitude'] as num?)?.toDouble() ?? 0.0,
+      targetRadius: (map['targetRadius'] as num?)?.toDouble() ?? 100.0,
     );
   }
 }
