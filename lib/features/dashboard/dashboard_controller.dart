@@ -193,6 +193,8 @@ class DashboardController extends Notifier<DashboardState> {
         activeMateri: currentConfig.activeMateri,
         rekapSigned: currentConfig.rekapSigned,
         kepalaSekolahNim: currentConfig.kepalaSekolahNim,
+        kadivNim: currentConfig.kadivNim,
+        kadivIsKepsek: currentConfig.kadivIsKepsek,
       );
       await ref.read(firebaseServiceProvider).saveConfig(updatedConfig);
     }

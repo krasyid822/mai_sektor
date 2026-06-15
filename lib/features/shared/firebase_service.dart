@@ -246,17 +246,30 @@ class FirebaseService {
   }
 
   Stream<List<TestScore>> streamTestScores() {
-    return _firestore
-        .collection('test_scores')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => TestScore.fromMap(doc.data()))
-              .toList();
-        })
-        .handleError((e, stack) {
-          _consoleLog('streamTestScores error: $e\n$stack');
-        });
+    return _firestore.collection('test_scores').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => TestScore.fromMap(doc.data())).toList();
+    });
+  }
+
+  // --- CERTIFICATE RECORDS ---
+  Future<void> saveCertificateRecord(CertificateRecord record) async {
+    await _firestore
+        .collection('certificates')
+        .doc(record.verificationCode)
+        .set(record.toMap());
+  }
+
+  Future<CertificateRecord?> getCertificateRecord(
+    String verificationCode,
+  ) async {
+    final doc = await _firestore
+        .collection('certificates')
+        .doc(verificationCode)
+        .get();
+    if (doc.exists && doc.data() != null) {
+      return CertificateRecord.fromMap(doc.data()!);
+    }
+    return null;
   }
 }
 

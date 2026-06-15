@@ -36,5 +36,15 @@ service cloud.firestore {
     match /files/{document} {
       allow read, write: if true;
     }
+    
+    // Rules for Headmaster-inputted pretest/posttest scores
+    match /test_scores/{document} {
+      allow read, write: if true;
+    }
+    
+    // Rules for certificate verification records
+    match /certificates/{document} {
+      allow read, write: if true;
+    }
   }
 }

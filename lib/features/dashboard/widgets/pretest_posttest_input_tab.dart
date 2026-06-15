@@ -21,62 +21,307 @@ class PretestPosttestInputTab extends ConsumerStatefulWidget {
 
 class _PretestPosttestInputTabState
     extends ConsumerState<PretestPosttestInputTab> {
-  final Map<String, TextEditingController> _preControllers = {};
-  final Map<String, TextEditingController> _postControllers = {};
+  /// Stores score controllers keyed by 'participant|materi|type'
+  final Map<String, TextEditingController> _scoreControllers = {};
 
   @override
   void dispose() {
-    for (final c in _preControllers.values) {
-      c.dispose();
-    }
-    for (final c in _postControllers.values) {
+    for (final c in _scoreControllers.values) {
       c.dispose();
     }
     super.dispose();
   }
 
-  String _key(String participant, String materi) => '$participant|$materi';
+  String _scoreKey(String participant, String materi, String type) =>
+      '$participant|$materi|$type';
 
-  void _ensureControllers(
-    List<Identity> participants,
-    List<TestScore> existingScores,
-  ) {
-    for (final p in participants) {
-      for (final materi in kMateriList) {
-        final key = _key(p.name, materi);
-        if (!_preControllers.containsKey(key)) {
-          _preControllers[key] = TextEditingController();
-        }
-        if (!_postControllers.containsKey(key)) {
-          _postControllers[key] = TextEditingController();
-        }
+  void _ensureControllers(List<Test> tests, List<TestScore> existingScores) {
+    for (final t in tests) {
+      final key = _scoreKey(t.name, t.materi, t.type);
+      if (!_scoreControllers.containsKey(key)) {
+        _scoreControllers[key] = TextEditingController();
       }
     }
     // Populate existing values
     for (final ts in existingScores) {
-      final key = _key(ts.participantName, ts.materi);
-      if (_preControllers.containsKey(key) && ts.pretestScore != null) {
-        _preControllers[key]!.text = ts.pretestScore!.toStringAsFixed(0);
+      if (ts.pretestScore != null) {
+        final preKey = _scoreKey(ts.participantName, ts.materi, 'pre');
+        if (_scoreControllers.containsKey(preKey)) {
+          _scoreControllers[preKey]!.text = ts.pretestScore!.toStringAsFixed(0);
+        }
       }
-      if (_postControllers.containsKey(key) && ts.posttestScore != null) {
-        _postControllers[key]!.text = ts.posttestScore!.toStringAsFixed(0);
+      if (ts.posttestScore != null) {
+        final postKey = _scoreKey(ts.participantName, ts.materi, 'post');
+        if (_scoreControllers.containsKey(postKey)) {
+          _scoreControllers[postKey]!.text = ts.posttestScore!.toStringAsFixed(
+            0,
+          );
+        }
       }
     }
   }
 
-  Future<void> _saveScore(
-    String participantName,
-    String materi,
-    double? pretestScore,
-    double? posttestScore,
-  ) async {
+  Future<void> _saveScore(Test test, String value) async {
+    final doubleVal = double.tryParse(value);
+    if (doubleVal == null) return;
+
+    // Get existing TestScore for this participant+materi
+    final existingScores = await ref
+        .read(firebaseServiceProvider)
+        .streamTestScores()
+        .first;
+    final existing = existingScores
+        .where(
+          (ts) => ts.participantName == test.name && ts.materi == test.materi,
+        )
+        .firstOrNull;
+
     final testScore = TestScore(
-      participantName: participantName,
-      materi: materi,
-      pretestScore: pretestScore,
-      posttestScore: posttestScore,
+      participantName: test.name,
+      materi: test.materi,
+      pretestScore: test.type == 'pre' ? doubleVal : existing?.pretestScore,
+      posttestScore: test.type == 'post' ? doubleVal : existing?.posttestScore,
     );
     await ref.read(firebaseServiceProvider).saveTestScore(testScore);
+  }
+
+  /// Builds the question label for a given answer key based on test type.
+  String _questionLabel(String key, String type) {
+    if (type == 'pre') {
+      switch (key) {
+        case 'q1_pernah_dengar':
+          return '1. Apakah Antum sudah pernah mendengar materi tersebut?';
+        case 'q2_point_penting':
+          return '2. Point-point penting mengenai materi';
+        case 'q3_pentingnya_materi':
+          return '3. Sejauh apa pentingnya materi tersebut';
+        case 'q4_belum_paham':
+          return '4. Bagian mana dari materi yang belum dipahami';
+        case 'q5_kesan_ekspektasi':
+          return '5. Kesan dan ekspektasi terhadap pemberi materi';
+        default:
+          return key;
+      }
+    } else {
+      switch (key) {
+        case 'q1_uraian':
+          return '1. Uraikan Kembali Materi tersebut dengan singkat dan jelas';
+        case 'q2_dalil_aqli':
+          return '2. Sebutkan dalil aqli (Logika) dari materi tersebut';
+        case 'q3_dalil_naqli':
+          return '3. Sebutkan dalil naqli (Al-Qur\'an dan Sunnah) dari materi tersebut';
+        case 'q4_implementasi':
+          return '4. Sikap aplikasi atau implementasi yang bisa dilakukan';
+        case 'q5_khazanah':
+          return '5. Khazanah baru yang diperoleh dan rencana strategi';
+        case 'rating_pemateri':
+          return 'Penilaian untuk pemateri (1-5)';
+        default:
+          return key;
+      }
+    }
+  }
+
+  /// Builds the answer display for a single test submission.
+  Widget _buildAnswerCard(Test test, TestScore? existingScore) {
+    final scoreKey = _scoreKey(test.name, test.materi, test.type);
+    final controller = _scoreControllers[scoreKey]!;
+
+    // Pre-fill from existing score
+    if (existingScore != null) {
+      final existingVal = test.type == 'pre'
+          ? existingScore.pretestScore
+          : existingScore.posttestScore;
+      if (existingVal != null && controller.text.isEmpty) {
+        controller.text = existingVal.toStringAsFixed(0);
+      }
+    }
+
+    return Card(
+      color: const Color(0xFF1E293B),
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Colors.white10),
+      ),
+      child: ExpansionTile(
+        iconColor: Colors.tealAccent,
+        collapsedIconColor: Colors.white70,
+        title: Text(
+          test.name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          '${test.type == 'pre' ? 'Pre-Test' : 'Post-Test'} | Materi: ${test.materi}',
+          style: const TextStyle(color: Colors.white60, fontSize: 12),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          'Pemateri: ${test.pemateri}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          'Instruktur: ${test.instruktur}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white12),
+                const SizedBox(height: 8),
+                const Text(
+                  'JAWABAN PESERTA:',
+                  style: TextStyle(
+                    color: Colors.tealAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...test.answers.entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _questionLabel(entry.key, test.type),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            entry.value.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white12),
+                const SizedBox(height: 8),
+                // Score input section
+                Row(
+                  children: [
+                    const Text(
+                      'Nilai (0-100):',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 80,
+                      child: TextFormField(
+                        controller: controller,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: 'Nilai',
+                          hintStyle: const TextStyle(
+                            color: Colors.white24,
+                            fontSize: 12,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Colors.white12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Colors.white12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Colors.tealAccent,
+                            ),
+                          ),
+                        ),
+                        onChanged: (val) => _saveScore(test, val),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (controller.text.isNotEmpty &&
+                        double.tryParse(controller.text) != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.tealAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          controller.text,
+                          style: const TextStyle(
+                            color: Colors.tealAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -84,240 +329,124 @@ class _PretestPosttestInputTabState
     final identitiesAsync = ref.watch(identitiesStreamProvider);
     final groupsAsync = ref.watch(groupsStreamProvider);
     final testScoresAsync = ref.watch(testScoresStreamProvider);
+    final testsAsync = ref.watch(testsStreamProvider);
 
-    return testScoresAsync.when(
-      data: (existingScores) {
-        return identitiesAsync.when(
-          data: (idents) {
-            return groupsAsync.when(
-              data: (groups) {
-                final participantNames = groups
-                    .expand((g) => g.participants)
-                    .toSet();
-                final participantsOnly =
-                    idents
-                        .where((i) => participantNames.contains(i.name))
-                        .toList()
-                      ..sort((a, b) => a.name.compareTo(b.name));
+    // Check if any provider is still loading
+    final isLoading =
+        identitiesAsync.isLoading ||
+        groupsAsync.isLoading ||
+        testScoresAsync.isLoading ||
+        testsAsync.isLoading;
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-                _ensureControllers(participantsOnly, existingScores);
+    // Check for errors
+    final error =
+        identitiesAsync.error ??
+        groupsAsync.error ??
+        testScoresAsync.error ??
+        testsAsync.error;
+    if (error != null) {
+      return Center(child: Text('Error: $error'));
+    }
 
-                if (participantsOnly.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Belum ada peserta terdaftar.',
-                      style: TextStyle(color: Colors.white60, fontSize: 16),
-                    ),
-                  );
-                }
+    // All data available
+    final identities = identitiesAsync.value ?? [];
+    final groups = groupsAsync.value ?? [];
+    final existingScores = testScoresAsync.value ?? [];
+    final allTests = testsAsync.value ?? [];
 
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Input Nilai Pre-Test & Post-Test',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Masukkan nilai (0-100) untuk setiap peserta pada setiap materi. '
-                        'Nilai ini akan digunakan dalam perhitungan nilai Kelas Besar.',
-                        style: TextStyle(color: Colors.white60, fontSize: 13),
-                      ),
-                      const SizedBox(height: 24),
-                      // Table header
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingRowColor: WidgetStateProperty.all(
-                              Colors.white.withValues(alpha: 0.05),
-                            ),
-                            dataRowMinHeight: 52,
-                            dataRowMaxHeight: 72,
-                            columnSpacing: 16,
-                            columns: [
-                              const DataColumn(
-                                label: Text(
-                                  'Peserta',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              // 4 materi × 2 columns (Pre, Post) = 8 columns
-                              ...kMateriList.expand(
-                                (m) => [
-                                  DataColumn(
-                                    label: Text(
-                                      '$m\n(Pre)',
-                                      style: const TextStyle(
-                                        color: Colors.tealAccent,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Text(
-                                      '$m\n(Post)',
-                                      style: const TextStyle(
-                                        color: Colors.orangeAccent,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            rows: participantsOnly.map((p) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(
-                                    ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 160,
-                                      ),
-                                      child: Text(
-                                        Identity.displayName(
-                                          p,
-                                          participantsOnly,
-                                        ),
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                  // 4 materi × 2 input fields
-                                  ...kMateriList.expand((m) {
-                                    final key = _key(p.name, m);
-                                    return [
-                                      DataCell(
-                                        _buildScoreField(
-                                          controller: _preControllers[key]!,
-                                          hint: 'Pre',
-                                          onSaved: (val) {
-                                            final doubleVal = double.tryParse(
-                                              val,
-                                            );
-                                            final existing = existingScores
-                                                .where(
-                                                  (ts) =>
-                                                      ts.participantName ==
-                                                          p.name &&
-                                                      ts.materi == m,
-                                                )
-                                                .firstOrNull;
-                                            _saveScore(
-                                              p.name,
-                                              m,
-                                              doubleVal,
-                                              existing?.posttestScore,
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      DataCell(
-                                        _buildScoreField(
-                                          controller: _postControllers[key]!,
-                                          hint: 'Post',
-                                          onSaved: (val) {
-                                            final doubleVal = double.tryParse(
-                                              val,
-                                            );
-                                            final existing = existingScores
-                                                .where(
-                                                  (ts) =>
-                                                      ts.participantName ==
-                                                          p.name &&
-                                                      ts.materi == m,
-                                                )
-                                                .firstOrNull;
-                                            _saveScore(
-                                              p.name,
-                                              m,
-                                              existing?.pretestScore,
-                                              doubleVal,
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ];
-                                  }),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
-  }
+    final participantNames = groups.expand((g) => g.participants).toSet();
+    final participantsOnly =
+        identities.where((i) => participantNames.contains(i.name)).toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
 
-  Widget _buildScoreField({
-    required TextEditingController controller,
-    required String hint,
-    required void Function(String) onSaved,
-  }) {
-    return SizedBox(
-      width: 60,
-      child: TextFormField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
-        textAlign: TextAlign.center,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 4,
-            vertical: 6,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: Colors.white12),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: Colors.white12),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4),
-            borderSide: const BorderSide(color: Colors.tealAccent),
-          ),
+    // Filter tests to only include registered participants
+    final tests = allTests
+        .where((t) => participantNames.contains(t.name))
+        .toList();
+
+    _ensureControllers(tests, existingScores);
+
+    if (participantsOnly.isEmpty) {
+      return const Center(
+        child: Text(
+          'Belum ada peserta terdaftar.',
+          style: TextStyle(color: Colors.white60, fontSize: 16),
         ),
-        onChanged: onSaved,
+      );
+    }
+
+    if (tests.isEmpty) {
+      return const Center(
+        child: Text(
+          'Belum ada jawaban pretest/posttest yang dikirim peserta.',
+          style: TextStyle(color: Colors.white60, fontSize: 16),
+        ),
+      );
+    }
+
+    // Group tests by participant name for organized display
+    final Map<String, List<Test>> testsByParticipant = {};
+    for (final t in tests) {
+      testsByParticipant.putIfAbsent(t.name, () => []).add(t);
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Input Nilai Pre-Test & Post-Test',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Berikut adalah lembar jawaban yang dikirim peserta. '
+            'Masukkan nilai (0-100) pada setiap jawaban untuk menilai.',
+            style: TextStyle(color: Colors.white60, fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          // Group by participant
+          ...participantsOnly.map((p) {
+            final participantTests = testsByParticipant[p.name] ?? [];
+            if (participantTests.isEmpty) return const SizedBox.shrink();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    Identity.displayName(p, participantsOnly),
+                    style: const TextStyle(
+                      color: Colors.tealAccent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ...participantTests.map((test) {
+                  final existing = existingScores
+                      .where(
+                        (ts) =>
+                            ts.participantName == test.name &&
+                            ts.materi == test.materi,
+                      )
+                      .firstOrNull;
+                  return _buildAnswerCard(test, existing);
+                }),
+                const SizedBox(height: 16),
+              ],
+            );
+          }),
+        ],
       ),
     );
   }

@@ -245,6 +245,8 @@ class AppConfig {
   final String activeMateri;
   final bool rekapSigned;
   final String? kepalaSekolahNim;
+  final String? kadivNim;
+  final bool kadivIsKepsek;
 
   AppConfig({
     required this.activeMode,
@@ -260,6 +262,8 @@ class AppConfig {
     this.activeMateri = '',
     this.rekapSigned = false,
     this.kepalaSekolahNim,
+    this.kadivNim,
+    this.kadivIsKepsek = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -277,6 +281,8 @@ class AppConfig {
       'activeMateri': activeMateri,
       'rekapSigned': rekapSigned,
       'kepalaSekolahNim': kepalaSekolahNim,
+      'kadivNim': kadivNim,
+      'kadivIsKepsek': kadivIsKepsek,
     };
   }
 
@@ -295,6 +301,8 @@ class AppConfig {
       activeMateri: map['activeMateri'] ?? '',
       rekapSigned: map['rekapSigned'] ?? false,
       kepalaSekolahNim: map['kepalaSekolahNim'],
+      kadivNim: map['kadivNim'],
+      kadivIsKepsek: map['kadivIsKepsek'] ?? false,
     );
   }
 }
@@ -329,6 +337,40 @@ class TestScore {
       materi: map['materi'] ?? '',
       pretestScore: (map['pretestScore'] as num?)?.toDouble(),
       posttestScore: (map['posttestScore'] as num?)?.toDouble(),
+    );
+  }
+}
+
+/// Stores certificate verification data in Firestore.
+/// Doc ID = verification code (e.g., "MAI-XXXX-XXXX-XXXX").
+class CertificateRecord {
+  final String verificationCode;
+  final String participantName;
+  final String kepengurusanTahun;
+  final DateTime issuedAt;
+
+  CertificateRecord({
+    required this.verificationCode,
+    required this.participantName,
+    required this.kepengurusanTahun,
+    DateTime? issuedAt,
+  }) : issuedAt = issuedAt ?? DateTime.now();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'verificationCode': verificationCode,
+      'participantName': participantName,
+      'kepengurusanTahun': kepengurusanTahun,
+      'issuedAt': issuedAt.toIso8601String(),
+    };
+  }
+
+  factory CertificateRecord.fromMap(Map<String, dynamic> map) {
+    return CertificateRecord(
+      verificationCode: map['verificationCode'] ?? '',
+      participantName: map['participantName'] ?? '',
+      kepengurusanTahun: map['kepengurusanTahun'] ?? '',
+      issuedAt: DateTime.tryParse(map['issuedAt'] ?? ''),
     );
   }
 }

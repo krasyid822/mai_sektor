@@ -350,6 +350,8 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
                           kadivSignatureBase64: config.kadivSignatureBase64,
                           activeMateri: newMateri,
                           kepalaSekolahNim: config.kepalaSekolahNim,
+                          kadivNim: config.kadivNim,
+                          kadivIsKepsek: config.kadivIsKepsek,
                         ),
                       );
                 },

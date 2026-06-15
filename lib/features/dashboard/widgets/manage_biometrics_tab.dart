@@ -239,16 +239,18 @@ class _ManageBiometricsTabState extends ConsumerState<ManageBiometricsTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Row(
-                    children: [
+                  Row(
+                    children: const [
                       Icon(Icons.fingerprint, color: Colors.tealAccent, size: 28),
                       SizedBox(width: 12),
-                      Text(
-                        "Kelola Kredensial & Biometrik Identitas",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          "Kelola Kredensial & Biometrik Identitas",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

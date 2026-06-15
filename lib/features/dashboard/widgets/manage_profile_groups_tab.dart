@@ -197,6 +197,8 @@ class _ManageProfileAndGroupsTabState
                                   kepalaSekolahNim: val.trim().isEmpty
                                       ? null
                                       : val.trim(),
+                                  kadivNim: widget.config.kadivNim,
+                                  kadivIsKepsek: widget.config.kadivIsKepsek,
                                 );
                                 await firebaseService.saveConfig(updatedConfig);
                               },
@@ -350,32 +352,36 @@ class _ManageProfileAndGroupsTabState
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _kadivController,
-                    style: const TextStyle(color: Colors.white),
-                    textCapitalization: TextCapitalization.words,
-                    inputFormatters: [TitleCaseTextInputFormatter()],
-                    decoration: InputDecoration(
-                      labelText: "Nama Kepala Divisi MAI",
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      hintText:
-                          widget.config.kadivNama ?? "Masukkan nama Kadiv...",
-                      hintStyle: const TextStyle(color: Colors.white30),
-                      prefixIcon: const Icon(
-                        Icons.person,
-                        color: Colors.tealAccent,
+                  if (!widget.config.kadivIsKepsek) ...[
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _kadivController,
+                      style: const TextStyle(color: Colors.white),
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [TitleCaseTextInputFormatter()],
+                      decoration: InputDecoration(
+                        labelText: "Nama Kepala Divisi MAI",
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        hintText:
+                            widget.config.kadivNama ?? "Masukkan nama Kadiv...",
+                        hintStyle: const TextStyle(color: Colors.white30),
+                        prefixIcon: const Icon(
+                          Icons.person,
+                          color: Colors.tealAccent,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  SignatureUploadWidget(
-                    controller: _kadivSigController,
-                    title: "Tanda Tangan Kepala Divisi MAI",
-                    height: 120,
-                    onCleared: () async {
-                      await firebaseService.saveConfig(
-                        AppConfig(
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      initialValue: widget.config.kadivNim ?? '',
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "NIM Kepala Divisi MAI",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        prefixIcon: Icon(Icons.badge, color: Colors.tealAccent),
+                      ),
+                      onChanged: (val) async {
+                        final updatedConfig = AppConfig(
                           activeMode: widget.config.activeMode,
                           kepalaSekolahNama: widget.config.kepalaSekolahNama,
                           kepengurusanTahun: widget.config.kepengurusanTahun,
@@ -386,76 +392,183 @@ class _ManageProfileAndGroupsTabState
                           kepsekSignatureBase64:
                               widget.config.kepsekSignatureBase64,
                           kadivNama: widget.config.kadivNama,
-                          kadivSignatureBase64: null,
+                          kadivSignatureBase64:
+                              widget.config.kadivSignatureBase64,
                           activeMateri: widget.config.activeMateri,
+                          rekapSigned: widget.config.rekapSigned,
                           kepalaSekolahNim: widget.config.kepalaSekolahNim,
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.tealAccent,
-                      foregroundColor: Colors.black,
+                          kadivNim: val.trim().isEmpty ? null : val.trim(),
+                          kadivIsKepsek: widget.config.kadivIsKepsek,
+                        );
+                        await firebaseService.saveConfig(updatedConfig);
+                      },
                     ),
-                    icon: const Icon(Icons.save),
-                    label: const Text("SIMPAN PROFIL KADIV"),
-                    onPressed: () async {
-                      final kadivName = _kadivController.text.trim();
-                      if (kadivName.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Harap masukkan nama Kepala Divisi MAI!',
-                            ),
+                  ],
+                  const SizedBox(height: 16),
+                  // Toggle: Kadiv merangkap sebagai Kepala Sekolah
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Kadiv merangkap sebagai Kepala Sekolah",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Jika aktif, kolom Kadiv tidak akan ditampilkan "
+                                "di sertifikat (digantikan Kepala Sekolah).",
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                        return;
-                      }
-
-                      String? kadivSigBase64;
-                      if (_kadivSigController.value.isNotEmpty) {
-                        final sigBytes = await _kadivSigController.toPngBytes();
-                        if (sigBytes != null) {
-                          kadivSigBase64 =
-                              'data:image/png;base64,${base64Encode(sigBytes)}';
-                        }
-                      }
-
-                      await firebaseService.saveConfig(
-                        AppConfig(
-                          activeMode: widget.config.activeMode,
-                          kepalaSekolahNama: widget.config.kepalaSekolahNama,
-                          kepengurusanTahun: widget.config.kepengurusanTahun,
-                          bobotKelasBesar: widget.config.bobotKelasBesar,
-                          bobotRoomQudwah: widget.config.bobotRoomQudwah,
-                          bobotTugas: widget.config.bobotTugas,
-                          nilaiMinimum: widget.config.nilaiMinimum,
-                          kepsekSignatureBase64:
-                              widget.config.kepsekSignatureBase64,
-                          kadivNama: kadivName,
-                          kadivSignatureBase64: kadivSigBase64,
-                          activeMateri: widget.config.activeMateri,
-                          kepalaSekolahNim: widget.config.kepalaSekolahNim,
                         ),
-                      );
-
-                      await firebaseService.saveIdentity(
-                        Identity(name: kadivName),
-                      );
-
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Profil Kepala Divisi MAI berhasil disimpan!',
-                            ),
+                        Switch(
+                          value: widget.config.kadivIsKepsek,
+                          activeThumbColor: Colors.tealAccent,
+                          onChanged: (val) async {
+                            final updatedConfig = AppConfig(
+                              activeMode: widget.config.activeMode,
+                              kepalaSekolahNama:
+                                  widget.config.kepalaSekolahNama,
+                              kepengurusanTahun:
+                                  widget.config.kepengurusanTahun,
+                              bobotKelasBesar: widget.config.bobotKelasBesar,
+                              bobotRoomQudwah: widget.config.bobotRoomQudwah,
+                              bobotTugas: widget.config.bobotTugas,
+                              nilaiMinimum: widget.config.nilaiMinimum,
+                              kepsekSignatureBase64:
+                                  widget.config.kepsekSignatureBase64,
+                              kadivNama: widget.config.kadivNama,
+                              kadivSignatureBase64:
+                                  widget.config.kadivSignatureBase64,
+                              activeMateri: widget.config.activeMateri,
+                              rekapSigned: widget.config.rekapSigned,
+                              kepalaSekolahNim: widget.config.kepalaSekolahNim,
+                              kadivNim: widget.config.kadivNim,
+                              kadivIsKepsek: val,
+                            );
+                            await firebaseService.saveConfig(updatedConfig);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!widget.config.kadivIsKepsek) ...[
+                    const SizedBox(height: 16),
+                    SignatureUploadWidget(
+                      controller: _kadivSigController,
+                      title: "Tanda Tangan Kepala Divisi MAI",
+                      height: 120,
+                      onCleared: () async {
+                        await firebaseService.saveConfig(
+                          AppConfig(
+                            activeMode: widget.config.activeMode,
+                            kepalaSekolahNama: widget.config.kepalaSekolahNama,
+                            kepengurusanTahun: widget.config.kepengurusanTahun,
+                            bobotKelasBesar: widget.config.bobotKelasBesar,
+                            bobotRoomQudwah: widget.config.bobotRoomQudwah,
+                            bobotTugas: widget.config.bobotTugas,
+                            nilaiMinimum: widget.config.nilaiMinimum,
+                            kepsekSignatureBase64:
+                                widget.config.kepsekSignatureBase64,
+                            kadivNama: widget.config.kadivNama,
+                            kadivSignatureBase64: null,
+                            activeMateri: widget.config.activeMateri,
+                            kepalaSekolahNim: widget.config.kepalaSekolahNim,
+                            kadivNim: widget.config.kadivNim,
+                            kadivIsKepsek: widget.config.kadivIsKepsek,
                           ),
                         );
-                      }
-                    },
-                  ),
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.tealAccent,
+                        foregroundColor: Colors.black,
+                      ),
+                      icon: const Icon(Icons.save),
+                      label: const Text("SIMPAN PROFIL KADIV"),
+                      onPressed: () async {
+                        final kadivName = _kadivController.text.trim();
+                        if (kadivName.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Harap masukkan nama Kepala Divisi MAI!',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        String? kadivSigBase64;
+                        if (_kadivSigController.value.isNotEmpty) {
+                          final sigBytes = await _kadivSigController.toPngBytes();
+                          if (sigBytes != null) {
+                            kadivSigBase64 =
+                                'data:image/png;base64,${base64Encode(sigBytes)}';
+                          }
+                        }
+
+                        await firebaseService.saveConfig(
+                          AppConfig(
+                            activeMode: widget.config.activeMode,
+                            kepalaSekolahNama: widget.config.kepalaSekolahNama,
+                            kepengurusanTahun: widget.config.kepengurusanTahun,
+                            bobotKelasBesar: widget.config.bobotKelasBesar,
+                            bobotRoomQudwah: widget.config.bobotRoomQudwah,
+                            bobotTugas: widget.config.bobotTugas,
+                            nilaiMinimum: widget.config.nilaiMinimum,
+                            kepsekSignatureBase64:
+                                widget.config.kepsekSignatureBase64,
+                            kadivNama: kadivName,
+                            kadivSignatureBase64: kadivSigBase64,
+                            activeMateri: widget.config.activeMateri,
+                            kepalaSekolahNim: widget.config.kepalaSekolahNim,
+                            kadivNim: widget.config.kadivNim,
+                            kadivIsKepsek: widget.config.kadivIsKepsek,
+                          ),
+                        );
+
+                        await firebaseService.saveIdentity(
+                          Identity(name: kadivName),
+                        );
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Profil Kepala Divisi MAI berhasil disimpan!',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
