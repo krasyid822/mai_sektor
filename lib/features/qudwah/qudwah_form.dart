@@ -217,7 +217,7 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
 
                       return DropdownButtonFormField<String>(
                         dropdownColor: const Color(0xFF1E293B),
-                        value: () {
+                        initialValue: () {
                           if (_selectedPeserta != null && myParticipants.contains(_selectedPeserta)) {
                             return _selectedPeserta;
                           }
