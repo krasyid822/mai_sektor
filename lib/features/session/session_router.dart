@@ -7,6 +7,7 @@ import '../kontrak/kontrak_form.dart';
 import '../shared/informative_splash_loading.dart';
 import '../shared/location_service.dart';
 import '../shared/models.dart';
+import '../shared/system_report_form.dart';
 
 class SessionRouter extends ConsumerWidget {
   const SessionRouter({super.key});
@@ -145,11 +146,21 @@ class _GeolocationGuardState extends ConsumerState<GeolocationGuard> {
       if (!mounted) return;
 
       if (!hasPerm) {
-        setState(() {
-          _isLoading = false;
-          _hasPermission = false;
-          _errorMessage = "Akses lokasi diperlukan untuk mencegah kecurangan absensi.";
-        });
+        // Auto-report to system_reports first, then update state
+        await ref.read(firebaseServiceProvider).reportSystemException(
+          reporterName: 'GPS Blocked',
+          role: 'peserta',
+          formSource: 'Geolocation Guard - Izin Ditolak',
+          exception: 'Izin akses lokasi browser ditolak oleh pengguna/perangkat.',
+        );
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _hasPermission = false;
+            _errorMessage = "Akses lokasi diperlukan untuk mencegah kecurangan absensi.";
+          });
+        }
         return;
       }
 
@@ -163,13 +174,35 @@ class _GeolocationGuardState extends ConsumerState<GeolocationGuard> {
 
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-        _hasPermission = true;
-        _currentDistance = distance;
-        _isWithinRange = distance <= widget.config.targetRadius;
-      });
-    } catch (e) {
+      final isWithin = distance <= widget.config.targetRadius;
+
+      if (!isWithin) {
+        await ref.read(firebaseServiceProvider).reportSystemException(
+          reporterName: 'GPS Out of Range',
+          role: 'peserta',
+          formSource: 'Geolocation Guard - Diluar Area',
+          exception: 'Pengguna terdeteksi diluar jangkauan: Jarak ${distance.toStringAsFixed(1)}m dari target (Toleransi: ${widget.config.targetRadius.toStringAsFixed(1)}m).',
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasPermission = true;
+          _currentDistance = distance;
+          _isWithinRange = isWithin;
+        });
+      }
+    } catch (e, stack) {
+      // Auto-report error first
+      await ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: 'GPS Sensor Error',
+        role: 'peserta',
+        formSource: 'Geolocation Guard - Error Sensor GPS',
+        exception: e,
+        stackTrace: stack,
+      );
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -213,7 +246,7 @@ class _GeolocationGuardState extends ConsumerState<GeolocationGuard> {
       return Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         body: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -241,6 +274,14 @@ class _GeolocationGuardState extends ConsumerState<GeolocationGuard> {
                   icon: const Icon(Icons.refresh),
                   label: const Text("Coba Lagi", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
+                const SizedBox(height: 48),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 24),
+                SystemReportForm(
+                  getReporterName: () => '',
+                  role: 'peserta',
+                  formSource: 'Geolocation Guard (Izin Ditolak)',
+                ),
               ],
             ),
           ),
@@ -252,7 +293,7 @@ class _GeolocationGuardState extends ConsumerState<GeolocationGuard> {
       return Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         body: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -287,6 +328,14 @@ class _GeolocationGuardState extends ConsumerState<GeolocationGuard> {
                   onPressed: _checkLocation,
                   icon: const Icon(Icons.refresh),
                   label: const Text("Cek Ulang Lokasi", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 48),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 24),
+                SystemReportForm(
+                  getReporterName: () => '',
+                  role: 'peserta',
+                  formSource: 'Geolocation Guard (Diluar Area)',
                 ),
               ],
             ),

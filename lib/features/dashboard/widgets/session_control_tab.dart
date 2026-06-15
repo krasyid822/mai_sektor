@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/models.dart';
 import '../../shared/firebase_service.dart';
 import '../dashboard_controller.dart';
-import '../../shared/location_service.dart';
 
 class SessionControlTab extends ConsumerStatefulWidget {
   final AppConfig config;
@@ -16,19 +15,11 @@ class SessionControlTab extends ConsumerStatefulWidget {
 
 class _SessionControlTabState extends ConsumerState<SessionControlTab> {
   double? _currentSliderValue = 1.0;
-  bool _enableGeolocation = false;
-  final _latController = TextEditingController();
-  final _lonController = TextEditingController();
-  final _radiusController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _currentSliderValue = _getMateriValue(widget.config.activeMateri);
-    _enableGeolocation = widget.config.enableGeolocation;
-    _latController.text = widget.config.targetLatitude.toString();
-    _lonController.text = widget.config.targetLongitude.toString();
-    _radiusController.text = widget.config.targetRadius.toString();
   }
 
   @override
@@ -37,17 +28,6 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
     if (oldWidget.config.activeMateri != widget.config.activeMateri) {
       setState(() {
         _currentSliderValue = _getMateriValue(widget.config.activeMateri);
-      });
-    }
-    if (oldWidget.config.enableGeolocation != widget.config.enableGeolocation ||
-        oldWidget.config.targetLatitude != widget.config.targetLatitude ||
-        oldWidget.config.targetLongitude != widget.config.targetLongitude ||
-        oldWidget.config.targetRadius != widget.config.targetRadius) {
-      setState(() {
-        _enableGeolocation = widget.config.enableGeolocation;
-        _latController.text = widget.config.targetLatitude.toString();
-        _lonController.text = widget.config.targetLongitude.toString();
-        _radiusController.text = widget.config.targetRadius.toString();
       });
     }
   }
@@ -485,130 +465,6 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
       ),
     );
 
-    final geolocationControlCard = Card(
-      color: const Color(0xFF1E293B),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.location_on, color: Colors.tealAccent, size: 24),
-                const SizedBox(width: 12),
-                const Text(
-                  "Pencegah Kecurangan Geolocation",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Switch(
-                  value: _enableGeolocation,
-                  activeThumbColor: Colors.tealAccent,
-                  onChanged: (val) async {
-                    setState(() {
-                      _enableGeolocation = val;
-                    });
-                    await _saveGeolocationSettings();
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Jika diaktifkan, pengguna di luar radius yang ditentukan akan diblokir dari pengisian form absensi, kontrak, dan evaluasi.",
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            if (_enableGeolocation) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _latController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: "Latitude Target",
-                        labelStyle: TextStyle(color: Colors.white70),
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _lonController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: "Longitude Target",
-                        labelStyle: TextStyle(color: Colors.white70),
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _radiusController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: "Radius Toleransi (Meter)",
-                        labelStyle: TextStyle(color: Colors.white70),
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: _fetchCurrentLocationAsTarget,
-                    icon: const Icon(Icons.my_location, size: 18),
-                    label: const Text("Gunakan Lokasi Saya"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.tealAccent,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: _saveGeolocationSettings,
-                child: const Text(
-                  "SIMPAN PENGATURAN GEOLOCATION",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -628,8 +484,6 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
               ],
             ),
           ],
-          const SizedBox(height: 24),
-          geolocationControlCard,
           const SizedBox(height: 24),
 
           Card(
@@ -792,7 +646,7 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
                             return GestureDetector(
                               onTap: () async {
                                 final textCtrl = TextEditingController(
-                                  text: absenceRecord?.errorReport ?? '',
+                                  text: absenceRecord?.absenceReason ?? '',
                                 );
                                 final reason = await showDialog<String>(
                                   context: context,
@@ -869,7 +723,7 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
                                       await firestore
                                           .collection('attendance')
                                           .doc(absenceRecord.id)
-                                          .update({'errorReport': reason});
+                                          .update({'absenceReason': reason});
                                     } else {
                                       final att = Attendance(
                                         id: '',
@@ -877,7 +731,7 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
                                         role: 'tidak_hadir',
                                         checkInTime: DateTime.now(),
                                         materi: config.activeMateri,
-                                        errorReport: reason,
+                                        absenceReason: reason,
                                       );
                                       await ref
                                           .read(firebaseServiceProvider)
@@ -888,7 +742,7 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
                               },
                               child: Tooltip(
                                 message: absenceRecord != null
-                                    ? "$pName (Ket: ${absenceRecord.errorReport})"
+                                    ? "$pName (Ket: ${absenceRecord.absenceReason})"
                                     : pName,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -1263,84 +1117,6 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _latController.dispose();
-    _lonController.dispose();
-    _radiusController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchCurrentLocationAsTarget() async {
-    try {
-      final hasPermission = await LocationService.handlePermission();
-      if (!hasPermission) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Izin lokasi ditolak!")),
-          );
-        }
-        return;
-      }
-      final position = await LocationService.getCurrentLocation();
-      setState(() {
-        _latController.text = position.latitude.toString();
-        _lonController.text = position.longitude.toString();
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal mengambil lokasi: $e")),
-        );
-      }
-    }
-  }
-
-  Future<void> _saveGeolocationSettings() async {
-    final lat = double.tryParse(_latController.text) ?? 0.0;
-    final lon = double.tryParse(_lonController.text) ?? 0.0;
-    final rad = double.tryParse(_radiusController.text) ?? 100.0;
-
-    try {
-      await ref.read(firebaseServiceProvider).saveConfig(
-        AppConfig(
-          activeMode: widget.config.activeMode,
-          kepalaSekolahNama: widget.config.kepalaSekolahNama,
-          kepengurusanTahun: widget.config.kepengurusanTahun,
-          bobotKelasBesar: widget.config.bobotKelasBesar,
-          bobotRoomQudwah: widget.config.bobotRoomQudwah,
-          bobotTugas: widget.config.bobotTugas,
-          nilaiMinimum: widget.config.nilaiMinimum,
-          kepsekSignatureBase64: widget.config.kepsekSignatureBase64,
-          kadivNama: widget.config.kadivNama,
-          kadivSignatureBase64: widget.config.kadivSignatureBase64,
-          activeMateri: widget.config.activeMateri,
-          kepalaSekolahNim: widget.config.kepalaSekolahNim,
-          kadivNim: widget.config.kadivNim,
-          kadivIsKepsek: widget.config.kadivIsKepsek,
-          enableGeolocation: _enableGeolocation,
-          targetLatitude: lat,
-          targetLongitude: lon,
-          targetRadius: rad,
-        ),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Pengaturan Geolocation berhasil disimpan!"),
-            backgroundColor: Colors.teal,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal menyimpan pengaturan: $e")),
-        );
-      }
-    }
   }
 }
 

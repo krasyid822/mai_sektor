@@ -20,8 +20,6 @@ class AttendanceState {
   final bool isSubmitting;
   final String murobbi;
   final String whatsapp;
-  final String errorReport;
-
   AttendanceState({
     this.selectedName,
     this.gender = 'ikhwan',
@@ -34,7 +32,6 @@ class AttendanceState {
     this.isSubmitting = false,
     this.murobbi = '',
     this.whatsapp = '',
-    this.errorReport = '',
   });
 
   AttendanceState copyWith({
@@ -49,7 +46,6 @@ class AttendanceState {
     bool? isSubmitting,
     String? murobbi,
     String? whatsapp,
-    String? errorReport,
   }) {
     return AttendanceState(
       selectedName: selectedName != null ? selectedName() : this.selectedName,
@@ -63,7 +59,6 @@ class AttendanceState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       murobbi: murobbi ?? this.murobbi,
       whatsapp: whatsapp ?? this.whatsapp,
-      errorReport: errorReport ?? this.errorReport,
     );
   }
 }
@@ -126,8 +121,15 @@ class AttendanceController extends Notifier<AttendanceState> {
           isCameraInitialized: true,
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Camera init error: $e");
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: state.selectedName ?? 'System',
+        role: state.role,
+        formSource: 'Absensi - Inisialisasi Kamera',
+        exception: e,
+        stackTrace: stack,
+      );
     }
   }
 
@@ -162,8 +164,15 @@ class AttendanceController extends Notifier<AttendanceState> {
         cameraController: () => newController,
         isCameraInitialized: true,
       );
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Camera switch error: $e");
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: state.selectedName ?? 'System',
+        role: state.role,
+        formSource: 'Absensi - Switch Kamera',
+        exception: e,
+        stackTrace: stack,
+      );
       // Fallback to re-initialize camera
       await initializeCamera();
     }
@@ -183,10 +192,6 @@ class AttendanceController extends Notifier<AttendanceState> {
 
   void updateWhatsapp(String whatsapp) {
     state = state.copyWith(whatsapp: whatsapp);
-  }
-
-  void updateErrorReport(String report) {
-    state = state.copyWith(errorReport: report);
   }
 
   Future<bool> handleNameChange(String? val, BuildContext context) async {
@@ -286,6 +291,23 @@ class AttendanceController extends Notifier<AttendanceState> {
           try {
             final photoFile = await state.cameraController!.takePicture();
             final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+            if (currentFaceVector.isEmpty) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Verifikasi Wajah Gagal! Kamera terdeteksi gelap atau tertutup. '
+                      'Pastikan wajah Anda mendapat pencahayaan yang cukup.',
+                    ),
+                    backgroundColor: Colors.redAccent,
+                    duration: Duration(seconds: 5),
+                  ),
+                );
+              }
+              state = state.copyWith(isSubmitting: false);
+              await initializeCamera();
+              return false;
+            }
             faceVectorString = currentFaceVector.toString();
 
             if (existingIdent != null &&
@@ -337,8 +359,15 @@ class AttendanceController extends Notifier<AttendanceState> {
                 ),
               );
             }
-          } catch (e) {
+          } catch (e, stack) {
             debugPrint('[Attendance] Face verification skipped: $e');
+            ref.read(firebaseServiceProvider).reportSystemException(
+              reporterName: selectedName,
+              role: role,
+              formSource: 'Absensi - Verifikasi Wajah',
+              exception: e,
+              stackTrace: stack,
+            );
           }
         }
 
@@ -453,7 +482,7 @@ class AttendanceController extends Notifier<AttendanceState> {
         checkInTime: DateTime.now(),
         signatureBase64: sigBase64,
         faceVector: faceVectorString.isNotEmpty ? faceVectorString : null,
-        errorReport: null,
+        absenceReason: null,
         materi: activeMateri,
       );
 
@@ -470,8 +499,15 @@ class AttendanceController extends Notifier<AttendanceState> {
       );
       await initializeCamera();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[AttendanceForm] Error submitting: $e');
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: selectedName,
+        role: role,
+        formSource: 'Absensi - Pengiriman Absensi',
+        exception: e,
+        stackTrace: stack,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: SelectableText('Gagal mengirim absensi: $e')),

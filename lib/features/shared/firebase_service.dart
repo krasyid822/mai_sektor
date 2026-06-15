@@ -277,6 +277,32 @@ class FirebaseService {
     await _firestore.collection('system_reports').add(report.toMap());
   }
 
+  Future<void> deleteSystemReport(String id) async {
+    await _firestore.collection('system_reports').doc(id).delete();
+  }
+
+  Future<void> reportSystemException({
+    required String reporterName,
+    required String role,
+    required String formSource,
+    required Object exception,
+    StackTrace? stackTrace,
+  }) async {
+    try {
+      final report = SystemReport(
+        id: '',
+        reporterName: reporterName.isEmpty ? 'System Auto-Report' : reporterName,
+        role: role.isEmpty ? 'system' : role,
+        formSource: formSource,
+        description: 'Error: $exception\n\nStacktrace:\n${stackTrace ?? StackTrace.current}',
+        timestamp: DateTime.now(),
+      );
+      await addSystemReport(report);
+    } catch (e) {
+      _consoleLog('Failed to auto-report exception: $e');
+    }
+  }
+
   Stream<List<SystemReport>> streamSystemReports() {
     return _firestore
         .collection('system_reports')

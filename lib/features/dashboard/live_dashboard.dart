@@ -38,6 +38,8 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
   @override
   Widget build(BuildContext context) {
     final configAsync = ref.watch(configStreamProvider);
+    final reportsAsync = ref.watch(systemReportsStreamProvider);
+    final reportCount = reportsAsync.value?.length ?? 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -50,23 +52,26 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.tealAccent,
           isScrollable: true,
-          tabs: const [
-            Tab(icon: Icon(Icons.settings_remote), text: 'Kontrol Sesi'),
-            Tab(icon: Icon(Icons.qr_code), text: 'Kode QR'),
-            Tab(icon: Icon(Icons.people), text: 'Data & File Upload'),
-            Tab(icon: Icon(Icons.assessment), text: 'Rekap Penilaian'),
-            Tab(icon: Icon(Icons.card_membership), text: 'Sertifikat'),
-            Tab(
+          tabs: [
+            const Tab(icon: Icon(Icons.settings_remote), text: 'Kontrol Sesi'),
+            const Tab(icon: Icon(Icons.qr_code), text: 'Kode QR'),
+            const Tab(icon: Icon(Icons.people), text: 'Data & File Upload'),
+            const Tab(icon: Icon(Icons.assessment), text: 'Rekap Penilaian'),
+            const Tab(icon: Icon(Icons.card_membership), text: 'Sertifikat'),
+            const Tab(
               icon: Icon(Icons.assignment_turned_in),
               text: 'Kontrak Belajar',
             ),
-            Tab(icon: Icon(Icons.assignment), text: 'Pre/Post-Test'),
-            Tab(
+            const Tab(icon: Icon(Icons.assignment), text: 'Pre/Post-Test'),
+            const Tab(
               icon: Icon(Icons.manage_accounts),
               text: 'Kelola Profil & Kelompok',
             ),
-            Tab(icon: Icon(Icons.fingerprint), text: 'Kelola Biometrik'),
-            Tab(icon: Icon(Icons.bug_report), text: 'Laporan Masalah'),
+            const Tab(icon: Icon(Icons.fingerprint), text: 'Kelola Biometrik'),
+            Tab(
+              icon: const Icon(Icons.bug_report),
+              text: reportCount > 0 ? 'Laporan Masalah ($reportCount)' : 'Laporan Masalah',
+            ),
           ],
         ),
       ),

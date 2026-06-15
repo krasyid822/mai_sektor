@@ -50,3 +50,9 @@
  sisipkan disetiap form penginputan untuk melapor kesalahan sistem, dan buat tab khusus yang berisi laporan ini
 
  tambahkan sistem pencegah kecurangan menggunakan geolokasi. saat ini web mudah untuk diakali (karena link kode qrnya tidak berubah) untuk berbuat curang, saya ingin membuat sistem pencegah kecurangan menggunakan geolokasi. sebagai contoh web akan melacak lokasi pengguna dan membandingkannya dengan lokasi yang telah ditentukan, jika tidak cocok maka web akan memblokir pengguna. tapi kepala sekolah bisa mematikan fitur ini saat tidak diperlukan
+
+ ada yang salah nih penggunaan atribut errorReport nya di firestore, kok alasan ketidakhadiran peserta dimasukkan kesitu, lalu ada laporan dari peserta tentang kesalahan sistem di errorReport, tapi kok di UI sendiri tidak menampilkan ada yang error
+
+ tampilkan count number di tab laporan masalah (menampilkan jumlah masalah yang dilaporkan)
+
+ izinkan kepala sekolah untuk membersihkan laporan kesalahan sistem yang dirasa sudah selesai

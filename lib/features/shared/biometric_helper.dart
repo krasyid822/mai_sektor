@@ -27,6 +27,9 @@ class BiometricHelper {
     List<double> vector = [];
     const int blockSize = 8; // 32 / 4
 
+    double totalLuminance = 0.0;
+    int pixelCount = 0;
+
     for (int by = 0; by < 4; by++) {
       for (int bx = 0; bx < 4; bx++) {
         double sumR = 0;
@@ -49,6 +52,9 @@ class BiometricHelper {
             sumG += g;
             sumB += b;
             sumL += l;
+            
+            totalLuminance += l;
+            pixelCount++;
           }
         }
 
@@ -61,25 +67,49 @@ class BiometricHelper {
     }
 
     html.Url.revokeObjectUrl(url);
+
+    // Reject if the overall image is too dark (average luminance < 0.08 / around 20 out of 255)
+    final avgLuminance = totalLuminance / (pixelCount * 255.0);
+    if (avgLuminance < 0.08) {
+      return []; // Return empty list to signal invalid/dark image
+    }
+
     return vector;
   }
 
-  // Calculate cosine similarity between two vectors
+  // Calculate mean-centered cosine similarity (Pearson correlation) between two vectors
   static double calculateSimilarity(List<double> v1, List<double> v2) {
     if (v1.length != v2.length || v1.isEmpty) return 0.0;
+
+    // Calculate mean of both vectors
+    double sum1 = 0.0;
+    double sum2 = 0.0;
+    for (int i = 0; i < v1.length; i++) {
+      sum1 += v1[i];
+      sum2 += v2[i];
+    }
+    final mean1 = sum1 / v1.length;
+    final mean2 = sum2 / v2.length;
 
     double dotProduct = 0.0;
     double normA = 0.0;
     double normB = 0.0;
 
     for (int i = 0; i < v1.length; i++) {
-      dotProduct += v1[i] * v2[i];
-      normA += v1[i] * v1[i];
-      normB += v2[i] * v2[i];
+      final diff1 = v1[i] - mean1;
+      final diff2 = v2[i] - mean2;
+      dotProduct += diff1 * diff2;
+      normA += diff1 * diff1;
+      normB += diff2 * diff2;
     }
 
     if (normA == 0.0 || normB == 0.0) return 0.0;
-    return dotProduct / (math.sqrt(normA) * math.sqrt(normB));
+    
+    // Pearson Correlation coefficient maps to range [-1.0, 1.0].
+    final correlation = dotProduct / (math.sqrt(normA) * math.sqrt(normB));
+    
+    // Scale from [-1.0, 1.0] to [0.0, 1.0]
+    return (correlation + 1.0) / 2.0;
   }
 
   // Parse string vector "[0.1, 0.2, ...]" to List<double>

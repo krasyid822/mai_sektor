@@ -158,8 +158,15 @@ class SetupController extends Notifier<SetupState> {
           isCameraInitialized: true,
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Camera init error: $e");
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: 'Setup - System',
+        role: 'system',
+        formSource: 'Setup - Inisialisasi Kamera',
+        exception: e,
+        stackTrace: stack,
+      );
     }
   }
 
@@ -192,8 +199,15 @@ class SetupController extends Notifier<SetupState> {
         cameraController: () => newController,
         isCameraInitialized: true,
       );
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Camera switch error: $e");
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: 'Setup - System',
+        role: 'system',
+        formSource: 'Setup - Switch Kamera',
+        exception: e,
+        stackTrace: stack,
+      );
       // Fallback to re-initialize camera
       await initializeCamera();
     }
@@ -426,7 +440,14 @@ class SetupController extends Notifier<SetupState> {
           }
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: name,
+        role: 'kepsek',
+        formSource: 'Setup - Cek Status Kepsek',
+        exception: e,
+        stackTrace: stack,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: SelectableText('Gagal memeriksa status: $e')),
@@ -506,9 +527,22 @@ class SetupController extends Notifier<SetupState> {
       }
 
       final photoFile = await state.cameraController!.takePicture();
-      final currentFaceVector = await BiometricHelper.extractFaceVector(
-        photoFile,
-      );
+      final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+      if (currentFaceVector.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Verifikasi Wajah Gagal! Kamera terdeteksi gelap atau tertutup. '
+                'Pastikan wajah Anda mendapat pencahayaan yang cukup.',
+              ),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        state = state.copyWith(isSaving: false);
+        return;
+      }
 
       double matchRate = 0.0;
       bool isLegacyMock = false;
@@ -534,12 +568,12 @@ class SetupController extends Notifier<SetupState> {
         matchRate = 100.0;
       }
 
-      if (matchRate < 75.0) {
+      if (matchRate < 65.0) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Verifikasi Wajah Gagal! Kemiripan hanya ${matchRate.toStringAsFixed(1)}% (Minimal 75.0%)',
+                'Verifikasi Wajah Gagal! Kemiripan hanya ${matchRate.toStringAsFixed(1)}% (Minimal 65.0%)',
               ),
               backgroundColor: Colors.redAccent,
             ),
@@ -578,7 +612,14 @@ class SetupController extends Notifier<SetupState> {
 
       ref.read(sessionAuthStateProvider.notifier).login();
       onSetupComplete();
-    } catch (e) {
+    } catch (e, stack) {
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: state.existingIdentity?.name ?? 'Kepsek (Login)',
+        role: 'kepsek',
+        formSource: 'Setup - Verifikasi & Login',
+        exception: e,
+        stackTrace: stack,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal melakukan pemindaian wajah: $e')),
@@ -657,11 +698,30 @@ class SetupController extends Notifier<SetupState> {
       }
       try {
         final photoFile = await state.cameraController!.takePicture();
-        final currentFaceVector = await BiometricHelper.extractFaceVector(
-          photoFile,
-        );
+        final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+        if (currentFaceVector.isEmpty) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Verifikasi Wajah Gagal! Kamera terdeteksi gelap atau tertutup. '
+                  'Pastikan wajah Anda mendapat pencahayaan yang cukup.',
+                ),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
+        }
         faceVectorString = currentFaceVector.toString();
-      } catch (e) {
+      } catch (e, stack) {
+        ref.read(firebaseServiceProvider).reportSystemException(
+          reporterName: name,
+          role: 'kepsek',
+          formSource: 'Setup - Ekstraksi Wajah Kepsek Baru',
+          exception: e,
+          stackTrace: stack,
+        );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Gagal mengekstrak sensor wajah: $e')),
@@ -706,7 +766,14 @@ class SetupController extends Notifier<SetupState> {
       } else {
         state = state.copyWith(currentStep: 2);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: name,
+        role: 'kepsek',
+        formSource: 'Setup - Simpan Data Kepsek Baru',
+        exception: e,
+        stackTrace: stack,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal menyimpan data Kepala Sekolah: $e')),
@@ -800,7 +867,14 @@ class SetupController extends Notifier<SetupState> {
 
       ref.read(sessionAuthStateProvider.notifier).login();
       onSetupComplete();
-    } catch (e) {
+    } catch (e, stack) {
+      ref.read(firebaseServiceProvider).reportSystemException(
+        reporterName: name,
+        role: 'kepsek',
+        formSource: 'Setup - Submit Setup',
+        exception: e,
+        stackTrace: stack,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: SelectableText('Terjadi kesalahan: $e')),

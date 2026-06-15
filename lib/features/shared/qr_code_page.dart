@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'models.dart';
 import 'firebase_service.dart';
+import 'location_service.dart';
 
 /// A dedicated page that displays all QR codes (Session + per-Walikelas Qudwah Rooms)
 /// with download buttons for each.
@@ -25,6 +26,12 @@ class _QrCodePageState extends ConsumerState<QrCodePage> {
 
   bool _isDownloadingSession = false;
   final Set<String> _downloadingQudwah = {};
+  
+  bool _enableGeolocation = false;
+  final _latController = TextEditingController();
+  final _lonController = TextEditingController();
+  final _radiusController = TextEditingController();
+  bool _isInitialized = false;
 
   String get _baseUri => html.window.location.origin;
 
@@ -36,6 +43,28 @@ class _QrCodePageState extends ConsumerState<QrCodePage> {
   @override
   Widget build(BuildContext context) {
     final groupsAsync = ref.watch(groupsStreamProvider);
+    final configAsync = ref.watch(configStreamProvider);
+    final config = configAsync.value;
+
+    if (config != null && !_isInitialized) {
+      _enableGeolocation = config.enableGeolocation;
+      _latController.text = config.targetLatitude.toString();
+      _lonController.text = config.targetLongitude.toString();
+      _radiusController.text = config.targetRadius.toString();
+      _isInitialized = true;
+    }
+
+    ref.listen<AsyncValue<AppConfig?>>(configStreamProvider, (prev, next) {
+      final nextConfig = next.value;
+      if (nextConfig != null) {
+        setState(() {
+          _enableGeolocation = nextConfig.enableGeolocation;
+          _latController.text = nextConfig.targetLatitude.toString();
+          _lonController.text = nextConfig.targetLongitude.toString();
+          _radiusController.text = nextConfig.targetRadius.toString();
+        });
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -60,6 +89,8 @@ class _QrCodePageState extends ConsumerState<QrCodePage> {
             ),
             const SizedBox(height: 16),
             _buildSessionQrCard(),
+            const SizedBox(height: 32),
+            _buildGeolocationCard(config),
             const SizedBox(height: 40),
 
             // ---- QUDWAH ROOM QRs ----
@@ -411,5 +442,211 @@ class _QrCodePageState extends ConsumerState<QrCodePage> {
     } finally {
       onDone();
     }
+  }
+
+  @override
+  void dispose() {
+    _latController.dispose();
+    _lonController.dispose();
+    _radiusController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchCurrentLocationAsTarget() async {
+    try {
+      final hasPermission = await LocationService.handlePermission();
+      if (!hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Izin lokasi ditolak!")),
+          );
+        }
+        return;
+      }
+      final position = await LocationService.getCurrentLocation();
+      setState(() {
+        _latController.text = position.latitude.toString();
+        _lonController.text = position.longitude.toString();
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal mengambil lokasi: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveGeolocationSettings(AppConfig config) async {
+    final lat = double.tryParse(_latController.text) ?? 0.0;
+    final lon = double.tryParse(_lonController.text) ?? 0.0;
+    final rad = double.tryParse(_radiusController.text) ?? 100.0;
+
+    try {
+      await ref.read(firebaseServiceProvider).saveConfig(
+        AppConfig(
+          activeMode: config.activeMode,
+          kepalaSekolahNama: config.kepalaSekolahNama,
+          kepengurusanTahun: config.kepengurusanTahun,
+          bobotKelasBesar: config.bobotKelasBesar,
+          bobotRoomQudwah: config.bobotRoomQudwah,
+          bobotTugas: config.bobotTugas,
+          nilaiMinimum: config.nilaiMinimum,
+          kepsekSignatureBase64: config.kepsekSignatureBase64,
+          kadivNama: config.kadivNama,
+          kadivSignatureBase64: config.kadivSignatureBase64,
+          activeMateri: config.activeMateri,
+          kepalaSekolahNim: config.kepalaSekolahNim,
+          kadivNim: config.kadivNim,
+          kadivIsKepsek: config.kadivIsKepsek,
+          enableGeolocation: _enableGeolocation,
+          targetLatitude: lat,
+          targetLongitude: lon,
+          targetRadius: rad,
+        ),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Pengaturan Geolocation berhasil disimpan!"),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal menyimpan pengaturan: $e")),
+        );
+      }
+    }
+  }
+
+  Widget _buildGeolocationCard(AppConfig? config) {
+    if (config == null) return const SizedBox.shrink();
+
+    return Card(
+      color: const Color(0xFF1E293B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: Colors.tealAccent, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  "Pencegah Kecurangan Geolocation",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Switch(
+                  value: _enableGeolocation,
+                  activeThumbColor: Colors.tealAccent,
+                  onChanged: (val) async {
+                    setState(() {
+                      _enableGeolocation = val;
+                    });
+                    await _saveGeolocationSettings(config);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Jika diaktifkan, pengguna di luar radius yang ditentukan akan diblokir dari pengisian form absensi, kontrak, dan evaluasi.",
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            if (_enableGeolocation) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _latController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Latitude Target",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        border: OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _lonController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Longitude Target",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        border: OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _radiusController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Radius Toleransi (Meter)",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        border: OutlineInputBorder(),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _fetchCurrentLocationAsTarget,
+                    icon: const Icon(Icons.my_location, size: 18),
+                    label: const Text("Gunakan Lokasi Saya"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.tealAccent,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => _saveGeolocationSettings(config),
+                child: const Text(
+                  "SIMPAN PENGATURAN GEOLOCATION",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -95,7 +95,7 @@ class Attendance {
   final DateTime checkInTime;
   final String? signatureBase64;
   final String? faceVector;
-  final String? errorReport;
+  final String? absenceReason;
   final String? materi;
 
   Attendance({
@@ -105,7 +105,7 @@ class Attendance {
     required this.checkInTime,
     this.signatureBase64,
     this.faceVector,
-    this.errorReport,
+    this.absenceReason,
     this.materi,
   });
 
@@ -116,7 +116,7 @@ class Attendance {
       'checkInTime': Timestamp.fromDate(checkInTime),
       'signatureBase64': signatureBase64,
       'faceVector': faceVector,
-      'errorReport': errorReport,
+      'absenceReason': absenceReason,
       'materi': materi,
     };
   }
@@ -130,7 +130,7 @@ class Attendance {
           (map['checkInTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       signatureBase64: map['signatureBase64'],
       faceVector: map['faceVector'],
-      errorReport: map['errorReport'],
+      absenceReason: map['absenceReason'] ?? map['errorReport'],
       materi: map['materi'],
     );
   }
@@ -424,7 +424,7 @@ class SystemReport {
       reporterName: map['reporterName'] ?? '',
       role: map['role'] ?? '',
       formSource: map['formSource'] ?? '',
-      description: map['description'] ?? '',
+      description: map['description'] ?? map['errorReport'] ?? '',
       timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
