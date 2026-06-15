@@ -215,7 +215,8 @@ class RoomQudwahEvaluation {
 }
 
 class AppConfig {
-  final String activeMode; // 'absensi', 'pretest', 'posttest', 'kontrak', 'idle'
+  final String
+  activeMode; // 'absensi', 'pretest', 'posttest', 'kontrak', 'idle'
   final String kepalaSekolahNama;
   final String kepengurusanTahun;
   final double bobotKelasBesar;
@@ -226,6 +227,7 @@ class AppConfig {
   final String? kadivNama;
   final String? kadivSignatureBase64;
   final String activeMateri;
+  final bool rekapSigned;
 
   AppConfig({
     required this.activeMode,
@@ -239,6 +241,7 @@ class AppConfig {
     this.kadivNama,
     this.kadivSignatureBase64,
     this.activeMateri = '',
+    this.rekapSigned = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -254,6 +257,7 @@ class AppConfig {
       'kadivNama': kadivNama,
       'kadivSignatureBase64': kadivSignatureBase64,
       'activeMateri': activeMateri,
+      'rekapSigned': rekapSigned,
     };
   }
 
@@ -270,6 +274,41 @@ class AppConfig {
       kadivNama: map['kadivNama'],
       kadivSignatureBase64: map['kadivSignatureBase64'],
       activeMateri: map['activeMateri'] ?? '',
+      rekapSigned: map['rekapSigned'] ?? false,
+    );
+  }
+}
+
+/// Headmaster-inputted pretest/posttest scores per participant per materi.
+/// Stored in 'test_scores' collection, doc ID = '{participantName}_{materi}'.
+class TestScore {
+  final String participantName;
+  final String materi;
+  final double? pretestScore;
+  final double? posttestScore;
+
+  TestScore({
+    required this.participantName,
+    required this.materi,
+    this.pretestScore,
+    this.posttestScore,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'participantName': participantName,
+      'materi': materi,
+      'pretestScore': pretestScore,
+      'posttestScore': posttestScore,
+    };
+  }
+
+  factory TestScore.fromMap(Map<String, dynamic> map) {
+    return TestScore(
+      participantName: map['participantName'] ?? '',
+      materi: map['materi'] ?? '',
+      pretestScore: (map['pretestScore'] as num?)?.toDouble(),
+      posttestScore: (map['posttestScore'] as num?)?.toDouble(),
     );
   }
 }

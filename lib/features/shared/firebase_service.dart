@@ -43,6 +43,12 @@ class FirebaseService {
     });
   }
 
+  Future<void> updateRekapSigned(bool signed) async {
+    await _firestore.collection('config').doc('global').update({
+      'rekapSigned': signed,
+    });
+  }
+
   // --- IDENTITIES ---
   Stream<List<Identity>> streamIdentities() {
     return _firestore
@@ -76,9 +82,9 @@ class FirebaseService {
   }
 
   Future<void> updateSignatureResetPermission(String name, bool allowed) async {
-    await _firestore.collection('identities').doc(name).update({
+    await _firestore.collection('identities').doc(name).set({
       'allowSignatureReset': allowed,
-    });
+    }, SetOptions(merge: true));
   }
 
   // --- GROUPS ---
@@ -203,6 +209,55 @@ class FirebaseService {
           _consoleLog('streamUploadedFiles error: $e\n$stack');
         });
   }
+
+  Future<void> saveResumeScore(String participantName, double score) async {
+    await _firestore.collection('resume_scores').doc(participantName).set({
+      'score': score,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<Map<String, double>> streamResumeScores() {
+    return _firestore
+        .collection('resume_scores')
+        .snapshots()
+        .map((snapshot) {
+          final map = <String, double>{};
+          for (final doc in snapshot.docs) {
+            final val = doc.data()['score'];
+            if (val != null) {
+              map[doc.id] = (val as num).toDouble();
+            }
+          }
+          return map;
+        })
+        .handleError((e, stack) {
+          _consoleLog('streamResumeScores error: $e\n$stack');
+        });
+  }
+
+  // --- TEST SCORES (headmaster input) ---
+  Future<void> saveTestScore(TestScore testScore) async {
+    final docId = '${testScore.participantName}_${testScore.materi}';
+    await _firestore
+        .collection('test_scores')
+        .doc(docId)
+        .set(testScore.toMap());
+  }
+
+  Stream<List<TestScore>> streamTestScores() {
+    return _firestore
+        .collection('test_scores')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => TestScore.fromMap(doc.data()))
+              .toList();
+        })
+        .handleError((e, stack) {
+          _consoleLog('streamTestScores error: $e\n$stack');
+        });
+  }
 }
 
 final firebaseServiceProvider = Provider<FirebaseService>((ref) {
@@ -238,6 +293,14 @@ final evaluationsStreamProvider = StreamProvider<List<RoomQudwahEvaluation>>((
 
 final filesStreamProvider = StreamProvider<List<String>>((ref) {
   return ref.watch(firebaseServiceProvider).streamUploadedFiles();
+});
+
+final resumeScoresStreamProvider = StreamProvider<Map<String, double>>((ref) {
+  return ref.watch(firebaseServiceProvider).streamResumeScores();
+});
+
+final testScoresStreamProvider = StreamProvider<List<TestScore>>((ref) {
+  return ref.watch(firebaseServiceProvider).streamTestScores();
 });
 
 class SessionAuthNotifier extends Notifier<bool> {

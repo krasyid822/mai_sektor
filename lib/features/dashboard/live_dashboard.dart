@@ -7,9 +7,9 @@ import 'widgets/data_upload_tab.dart';
 import 'widgets/rekap_penilaian_tab.dart';
 import 'widgets/certificate_tab.dart';
 import 'widgets/signed_contracts_tab.dart';
-import 'widgets/tests_tab.dart';
 import 'widgets/manage_profile_groups_tab.dart';
 import 'widgets/manage_biometrics_tab.dart';
+import 'widgets/pretest_posttest_input_tab.dart';
 
 class LiveDashboard extends ConsumerStatefulWidget {
   const LiveDashboard({super.key});
@@ -42,10 +42,7 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
-        title: const Text(
-          'Dasbor Utama Kepala Sekolah - MAI Sektor',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('MAI Sektor', style: TextStyle(color: Colors.white)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.tealAccent,
@@ -58,9 +55,15 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
             Tab(icon: Icon(Icons.people), text: 'Data & File Upload'),
             Tab(icon: Icon(Icons.assessment), text: 'Rekap Penilaian'),
             Tab(icon: Icon(Icons.card_membership), text: 'Sertifikat'),
-            Tab(icon: Icon(Icons.assignment_turned_in), text: 'Kontrak Belajar'),
+            Tab(
+              icon: Icon(Icons.assignment_turned_in),
+              text: 'Kontrak Belajar',
+            ),
             Tab(icon: Icon(Icons.assignment), text: 'Pre/Post-Test'),
-            Tab(icon: Icon(Icons.manage_accounts), text: 'Kelola Profil & Kelompok'),
+            Tab(
+              icon: Icon(Icons.manage_accounts),
+              text: 'Kelola Profil & Kelompok',
+            ),
             Tab(icon: Icon(Icons.fingerprint), text: 'Kelola Biometrik'),
           ],
         ),
@@ -85,7 +88,7 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
               RekapPenilaianTab(config: config),
               CertificateTab(config: config),
               const SignedContractsTab(),
-              const TestsTab(),
+              const PretestPosttestInputTab(),
               ManageProfileAndGroupsTab(config: config),
               const ManageBiometricsTab(),
             ],

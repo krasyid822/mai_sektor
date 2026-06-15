@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:signature/signature.dart';
 import '../shared/models.dart';
 import '../shared/firebase_service.dart';
+import '../shared/biometric_helper.dart';
+import '../shared/signature_helper.dart';
 
 class AttendanceState {
   final String? selectedName;
@@ -66,10 +69,12 @@ class AttendanceState {
 }
 
 class AttendanceController extends Notifier<AttendanceState> {
+  CameraController? _cameraController;
+
   @override
   AttendanceState build() {
     ref.onDispose(() {
-      state.cameraController?.dispose();
+      _cameraController?.dispose();
     });
     Future.microtask(() => initializeCamera());
     return AttendanceState();
@@ -77,8 +82,9 @@ class AttendanceController extends Notifier<AttendanceState> {
 
   Future<void> initializeCamera() async {
     try {
-      if (state.cameraController != null) {
-        await state.cameraController!.dispose();
+      if (_cameraController != null) {
+        await _cameraController!.dispose();
+        _cameraController = null;
         state = state.copyWith(
           cameraController: () => null,
           isCameraInitialized: false,
@@ -99,6 +105,7 @@ class AttendanceController extends Notifier<AttendanceState> {
           ResolutionPreset.low,
         );
         await controller.initialize();
+        _cameraController = controller;
         state = state.copyWith(
           cameras: camerasList,
           selectedCameraIndex: defaultIndex,
@@ -120,8 +127,9 @@ class AttendanceController extends Notifier<AttendanceState> {
       isCameraInitialized: false,
     );
 
-    if (state.cameraController != null) {
-      await state.cameraController!.dispose();
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+      _cameraController = null;
       state = state.copyWith(cameraController: () => null);
     }
 
@@ -135,6 +143,7 @@ class AttendanceController extends Notifier<AttendanceState> {
 
     try {
       await newController.initialize();
+      _cameraController = newController;
       state = state.copyWith(
         selectedCameraIndex: nextIndex,
         cameraController: () => newController,
@@ -219,10 +228,11 @@ class AttendanceController extends Notifier<AttendanceState> {
 
   Future<bool> submitAttendance({
     required List<int>? sigBytes,
+    required List<Point> sigPoints,
     required BuildContext context,
   }) async {
     if (state.isSubmitting) return false;
-    if (sigBytes == null) {
+    if (sigBytes == null || sigPoints.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Harap tanda tangani pad absensi!')),
@@ -236,10 +246,10 @@ class AttendanceController extends Notifier<AttendanceState> {
       mimeType: 'image/png',
     ).toString();
 
-    final faceVector = state.capturedFaceVector ?? "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]";
+    final selectedName = state.selectedName ?? '';
     final name = state.role == 'tamu'
-        ? 'Tamu - ${state.selectedName ?? "Anonim"}'
-        : (state.selectedName ?? '');
+        ? 'Tamu - ${selectedName.isNotEmpty ? selectedName : "Anonim"}'
+        : selectedName;
     final role = state.role;
 
     state = state.copyWith(
@@ -247,13 +257,123 @@ class AttendanceController extends Notifier<AttendanceState> {
       isSubmitting: true,
     );
 
+    String faceVectorString = '';
+
     try {
+      // --- BIOMETRIC VERIFICATION for peserta and guru (walikelas) ---
+      if ((role == 'peserta' || role == 'guru') && selectedName.isNotEmpty) {
+        final idents = ref.read(identitiesStreamProvider).value ?? [];
+        final existingIdent = idents.cast<Identity?>().firstWhere(
+          (i) => i!.name.toLowerCase() == selectedName.toLowerCase(),
+          orElse: () => null,
+        );
+
+        // --- Face Verification ---
+        if (state.isCameraInitialized && state.cameraController != null) {
+          try {
+            final photoFile = await state.cameraController!.takePicture();
+            final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+            faceVectorString = currentFaceVector.toString();
+
+            if (existingIdent != null &&
+                existingIdent.faceVector != null &&
+                existingIdent.faceVector!.isNotEmpty &&
+                existingIdent.faceVector != "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
+              final registeredFaceVector = BiometricHelper.parseVectorString(existingIdent.faceVector!);
+              final faceMatch = BiometricHelper.calculateSimilarity(currentFaceVector, registeredFaceVector) * 100.0;
+
+              if (faceMatch < 65.0) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Verifikasi Wajah Gagal! Kemiripan hanya ${faceMatch.toStringAsFixed(1)}% (Minimal 65.0%). '
+                        'Pastikan wajah Anda terlihat jelas di kamera.',
+                      ),
+                      backgroundColor: Colors.redAccent,
+                      duration: const Duration(seconds: 5),
+                    ),
+                  );
+                }
+                state = state.copyWith(isSubmitting: false);
+                await initializeCamera();
+                return false;
+              }
+            } else if (existingIdent?.faceVector == "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
+              // Legacy mock vector: auto-migrate to real
+              await ref.read(firebaseServiceProvider).saveIdentity(
+                Identity(
+                  name: existingIdent!.name,
+                  gender: existingIdent.gender,
+                  whatsapp: existingIdent.whatsapp,
+                  signatureVector: existingIdent.signatureVector,
+                  faceVector: faceVectorString,
+                  allowSignatureReset: existingIdent.allowSignatureReset,
+                ),
+              );
+            } else if (existingIdent != null && (existingIdent.faceVector == null || existingIdent.faceVector!.isEmpty)) {
+              // No registered face yet — save current face as reference
+              await ref.read(firebaseServiceProvider).saveIdentity(
+                Identity(
+                  name: existingIdent.name,
+                  gender: existingIdent.gender,
+                  whatsapp: existingIdent.whatsapp,
+                  signatureVector: existingIdent.signatureVector,
+                  faceVector: faceVectorString,
+                  allowSignatureReset: existingIdent.allowSignatureReset,
+                ),
+              );
+            }
+          } catch (e) {
+            debugPrint('[Attendance] Face verification skipped: $e');
+          }
+        }
+
+        // --- Signature Verification ---
+        if (existingIdent != null &&
+            existingIdent.signatureVector != null &&
+            existingIdent.signatureVector!.isNotEmpty) {
+          final parsedSig = SignatureHelper.parse(existingIdent.signatureVector!);
+          if (parsedSig.points.isNotEmpty) {
+            final currentOffsets = sigPoints.map((p) => p.offset).toList();
+            final sigMatchRate = SignatureHelper.calculateSimilarity(currentOffsets, parsedSig.points);
+
+            if (sigMatchRate < 35.0) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Verifikasi Tanda Tangan Gagal! Kemiripan hanya ${sigMatchRate.toStringAsFixed(1)}% (Minimal 35.0%). '
+                      'Silakan tanda tangan sesuai pola Anda.',
+                    ),
+                    backgroundColor: Colors.redAccent,
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
+              state = state.copyWith(isSubmitting: false);
+              await initializeCamera();
+              return false;
+            }
+          } else if (existingIdent.allowSignatureReset || parsedSig.points.isEmpty) {
+            // Save signature as reference if no points stored yet
+            final sigSerialized = SignatureHelper.serialize(
+              sigBase64,
+              sigPoints,
+            );
+            await ref.read(firebaseServiceProvider).updateIdentitySignature(selectedName, sigSerialized);
+          }
+        } else if (existingIdent != null) {
+          // No signature registered yet — save current as reference
+          final sigSerialized = SignatureHelper.serialize(sigBase64, sigPoints);
+          await ref.read(firebaseServiceProvider).updateIdentitySignature(selectedName, sigSerialized);
+        }
+      }
+
+      // --- Duplicate Check-in Guard ---
       final firestore = ref.read(firestoreProvider);
       final todayStart = DateTime.now().copyWith(
-        hour: 0,
-        minute: 0,
-        second: 0,
-        millisecond: 0,
+        hour: 0, minute: 0, second: 0, millisecond: 0,
       );
       final activeMateri = ref.read(configStreamProvider).value?.activeMateri ?? '';
 
@@ -291,7 +411,6 @@ class AttendanceController extends Notifier<AttendanceState> {
           }
         }
       } else {
-        // Fallback check-in today for guru/tamu
         alreadyCheckedIn = existingAttendance.docs.any((doc) {
           final checkInTime = doc.data()['checkInTime'] as Timestamp?;
           if (checkInTime == null) return false;
@@ -313,14 +432,14 @@ class AttendanceController extends Notifier<AttendanceState> {
         return false;
       }
 
-
+      // --- Save Attendance ---
       final att = Attendance(
         id: '',
         identityName: name,
         role: role,
         checkInTime: DateTime.now(),
         signatureBase64: sigBase64,
-        faceVector: faceVector,
+        faceVector: faceVectorString.isNotEmpty ? faceVectorString : null,
         errorReport: state.errorReport.trim(),
         materi: activeMateri,
       );

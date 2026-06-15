@@ -94,10 +94,12 @@ class SetupState {
 }
 
 class SetupController extends Notifier<SetupState> {
+  CameraController? _cameraController;
+
   @override
   SetupState build() {
     ref.onDispose(() {
-      state.cameraController?.dispose();
+      _cameraController?.dispose();
     });
     Future.microtask(() => initializeCamera());
     return SetupState();
@@ -127,6 +129,7 @@ class SetupController extends Notifier<SetupState> {
           ResolutionPreset.low,
         );
         await controller.initialize();
+        _cameraController = controller;
         state = state.copyWith(
           cameras: camerasList,
           selectedCameraIndex: defaultIndex,
@@ -148,8 +151,9 @@ class SetupController extends Notifier<SetupState> {
       isCameraInitialized: false,
     );
 
-    if (state.cameraController != null) {
-      await state.cameraController!.dispose();
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+      _cameraController = null;
       state = state.copyWith(cameraController: () => null);
     }
 
@@ -163,6 +167,7 @@ class SetupController extends Notifier<SetupState> {
 
     try {
       await newController.initialize();
+      _cameraController = newController;
       state = state.copyWith(
         selectedCameraIndex: nextIndex,
         cameraController: () => newController,

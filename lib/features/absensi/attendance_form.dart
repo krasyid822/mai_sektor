@@ -324,9 +324,11 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         : () async {
                             if (_formKey.currentState!.validate()) {
                               final sigBytes = await _sigController.toPngBytes();
+                              final sigPoints = List.of(_sigController.points);
                               if (context.mounted) {
                                 await controller.submitAttendance(
                                   sigBytes: sigBytes,
+                                  sigPoints: sigPoints,
                                   context: context,
                                 );
                               }

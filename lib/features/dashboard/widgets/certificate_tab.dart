@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../shared/models.dart';
 import '../../shared/firebase_service.dart';
 import '../../shared/signature_helper.dart';
+import '../dashboard_controller.dart';
 
 class CertificateTab extends ConsumerWidget {
   final AppConfig config;
@@ -214,15 +215,73 @@ class CertificateTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!config.rekapSigned) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, color: Colors.orangeAccent, size: 64),
+              SizedBox(height: 24),
+              Text(
+                "Sertifikat Belum Diterbitkan",
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 12),
+              Text(
+                "Sertifikat kelulusan otomatis dibuat jika rekapitulasi penilaian sudah ditandatangani oleh Kepala Sekolah di tab 'Rekap Penilaian'.",
+                style: TextStyle(color: Colors.white70, fontSize: 15),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final identitiesAsync = ref.watch(identitiesStreamProvider);
     final groups = ref.watch(groupsStreamProvider).value ?? [];
     final participantNames = groups.expand((g) => g.participants).toSet();
+    final controller = ref.read(dashboardControllerProvider.notifier);
+    final evaluations = ref.watch(evaluationsStreamProvider).value ?? [];
+    final tests = ref.watch(testsStreamProvider).value ?? [];
+    final attendances = ref.watch(attendanceStreamProvider).value ?? [];
+    final uploadedFiles = ref.watch(filesStreamProvider).value ?? [];
+    final resumeScores = ref.watch(resumeScoresStreamProvider).value ?? {};
 
     return identitiesAsync.when(
       data: (idents) {
         final participantsOnly = idents
             .where((id) => participantNames.contains(id.name))
             .toList();
+
+        final passedParticipants = participantsOnly.where((p) {
+          final scores = controller.calculateParticipantScores(
+            participant: p,
+            evaluations: evaluations,
+            tests: tests,
+            attendances: attendances,
+            uploadedFiles: uploadedFiles,
+            resumeScores: resumeScores,
+          );
+          final total = scores['total'] ?? 0.0;
+          return total >= config.nilaiMinimum;
+        }).toList();
+
+        if (passedParticipants.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Text(
+                "Tidak ada peserta yang memenuhi kriteria kelulusan (nilai >= batas minimum).",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -240,22 +299,32 @@ class CertificateTab extends ConsumerWidget {
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: participantsOnly.length,
+                itemCount: passedParticipants.length,
                 itemBuilder: (context, index) {
-                  final id = participantsOnly[index];
+                  final id = passedParticipants[index];
+                  final participantGroup = groups.cast<Group?>().firstWhere(
+                    (g) => g!.participants.contains(id.name),
+                    orElse: () => null,
+                  );
+
+                  final hasKepsek = config.kepsekSignatureBase64 != null && config.kepsekSignatureBase64!.isNotEmpty;
+                  final hasWalikelas = participantGroup?.walikelasSignatureBase64 != null && participantGroup!.walikelasSignatureBase64!.isNotEmpty;
+                  final hasKadiv = config.kadivSignatureBase64 != null && config.kadivSignatureBase64!.isNotEmpty;
+                  final allSigned = hasKepsek && hasWalikelas && hasKadiv;
+
                   return ListTile(
                     title: Text(
                       id.name,
                       style: const TextStyle(color: Colors.white),
                     ),
-                    subtitle: const Text(
-                      "Status Ttd: (Kepsek: ✓, Walikelas: ✓, Kadiv: ✓)",
-                      style: TextStyle(color: Colors.white60),
+                    subtitle: Text(
+                      "Status Ttd: (Kepsek: ${hasKepsek ? '✓' : '✗'}, Walikelas: ${hasWalikelas ? '✓' : '✗'}, Kadiv: ${hasKadiv ? '✓' : '✗'})",
+                      style: TextStyle(color: allSigned ? Colors.tealAccent : Colors.white60),
                     ),
                     trailing: ElevatedButton.icon(
-                      icon: const Icon(Icons.download),
+                      icon: Icon(allSigned ? Icons.download : Icons.lock),
                       label: const Text("Unduh Sertifikat (PDF)"),
-                      onPressed: () => _generateCertificatePDF(ref, id),
+                      onPressed: allSigned ? () => _generateCertificatePDF(ref, id) : null,
                     ),
                   );
                 },

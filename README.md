@@ -44,3 +44,7 @@
  perbaiki hardware resources usage agar mematikan kamera misal saat tidak diperlukan
 
  nama yang ada di wayground live seringkali tidak muat dan menjadi .. , tolong perbaiki dengan menjadikannya text running
+
+ kameramasih terus menyala dilatar belakang, dan juga ngapain minta izin microphone?
+
+ sisipkan disetiap form penginputan untuk melapor kesalahan sistem, dan buat tab khusus yang berisi laporan ini

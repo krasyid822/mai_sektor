@@ -114,7 +114,13 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
     );
 
     try {
-      await ref.read(firebaseServiceProvider).addEvaluation(eval);
+      final firebaseService = ref.read(firebaseServiceProvider);
+      await firebaseService.addEvaluation(eval);
+      
+      // Automatically update the group's walikelas signature
+      final walikelasName = _walikelasController.text.trim();
+      await firebaseService.updateWalikelasSignature(walikelasName, sigBase64);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
