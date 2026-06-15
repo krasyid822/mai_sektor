@@ -4,6 +4,7 @@ import '../shared/firebase_service.dart';
 import '../absensi/attendance_form.dart';
 import '../test/test_form.dart';
 import '../kontrak/kontrak_form.dart';
+import '../shared/informative_splash_loading.dart';
 
 class SessionRouter extends ConsumerWidget {
   const SessionRouter({super.key});
@@ -60,7 +61,9 @@ class SessionRouter extends ConsumerWidget {
               );
           }
         },
-        loading: () => const Center(child: CircularProgressIndicator(color: Colors.tealAccent)),
+        loading: () => const InformativeSplashLoading(
+          statusMessage: "Menghubungkan ke sesi aktif...",
+        ),
         error: (e, _) => Center(child: Text("Terjadi Kesalahan: $e", style: const TextStyle(color: Colors.redAccent))),
       ),
     );

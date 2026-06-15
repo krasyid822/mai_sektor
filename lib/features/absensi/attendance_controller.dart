@@ -116,9 +116,17 @@ class AttendanceController extends Notifier<AttendanceState> {
     final nextIndex = (state.selectedCameraIndex + 1) % state.cameras.length;
     final selectedCamera = state.cameras[nextIndex];
 
+    state = state.copyWith(
+      isCameraInitialized: false,
+    );
+
     if (state.cameraController != null) {
       await state.cameraController!.dispose();
+      state = state.copyWith(cameraController: () => null);
     }
+
+    // Give hardware / browser some time to release camera lock
+    await Future.delayed(const Duration(milliseconds: 300));
 
     final newController = CameraController(
       selectedCamera,
@@ -134,6 +142,8 @@ class AttendanceController extends Notifier<AttendanceState> {
       );
     } catch (e) {
       debugPrint("Camera switch error: $e");
+      // Fallback to re-initialize camera
+      await initializeCamera();
     }
   }
 
@@ -245,21 +255,55 @@ class AttendanceController extends Notifier<AttendanceState> {
         second: 0,
         millisecond: 0,
       );
+      final activeMateri = ref.read(configStreamProvider).value?.activeMateri ?? '';
+
       final existingAttendance = await firestore
           .collection('attendance')
           .where('identityName', isEqualTo: name)
           .where('role', isEqualTo: role)
-          .where(
-            'checkInTime',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart),
-          )
           .get();
 
-      if (existingAttendance.docs.isNotEmpty) {
+      bool alreadyCheckedIn = false;
+      String snackBarMsg = 'Anda sudah melakukan absensi hari ini!';
+
+      if (role == 'peserta' && activeMateri.isNotEmpty) {
+        final group1 = ['Urgensi Membina', 'Al Qudwah Qobla Dakwah'];
+        final group2 = ['Manajemen Mentoring Aktif', 'Seni Menyentuh Hati'];
+
+        final isGroup1 = group1.contains(activeMateri);
+        final isGroup2 = group2.contains(activeMateri);
+
+        for (final doc in existingAttendance.docs) {
+          final data = doc.data();
+          final attMateri = data['materi'] as String? ?? '';
+          if (isGroup1 && (group1.contains(attMateri) || attMateri.isEmpty)) {
+            alreadyCheckedIn = true;
+            snackBarMsg = 'Anda sudah melakukan absensi untuk sesi Kelas Besar 1!';
+            break;
+          } else if (isGroup2 && group2.contains(attMateri)) {
+            alreadyCheckedIn = true;
+            snackBarMsg = 'Anda sudah melakukan absensi untuk sesi Kelas Besar 2!';
+            break;
+          } else if (!isGroup1 && !isGroup2 && attMateri == activeMateri) {
+            alreadyCheckedIn = true;
+            snackBarMsg = 'Anda sudah melakukan absensi untuk materi ini!';
+            break;
+          }
+        }
+      } else {
+        // Fallback check-in today for guru/tamu
+        alreadyCheckedIn = existingAttendance.docs.any((doc) {
+          final checkInTime = doc.data()['checkInTime'] as Timestamp?;
+          if (checkInTime == null) return false;
+          return checkInTime.toDate().isAfter(todayStart);
+        });
+      }
+
+      if (alreadyCheckedIn) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Anda sudah melakukan absensi hari ini!'),
+            SnackBar(
+              content: Text(snackBarMsg),
               backgroundColor: Colors.amber,
             ),
           );
@@ -269,6 +313,7 @@ class AttendanceController extends Notifier<AttendanceState> {
         return false;
       }
 
+
       final att = Attendance(
         id: '',
         identityName: name,
@@ -277,6 +322,7 @@ class AttendanceController extends Notifier<AttendanceState> {
         signatureBase64: sigBase64,
         faceVector: faceVector,
         errorReport: state.errorReport.trim(),
+        materi: activeMateri,
       );
 
       await ref.read(firebaseServiceProvider).addAttendance(att);
@@ -306,4 +352,5 @@ class AttendanceController extends Notifier<AttendanceState> {
 
 final attendanceControllerProvider = NotifierProvider<AttendanceController, AttendanceState>(
   AttendanceController.new,
+  isAutoDispose: true,
 );

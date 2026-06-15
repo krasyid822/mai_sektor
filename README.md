@@ -39,3 +39,8 @@
  26. Untuk data vektor, jika sudah ada, lalu sistem meminta data itu lagi, artinya data vektor sebelumnya berfungsi sebagai pembanding untuk memastikan bahwa yang saat ini adalah orang yang sama, tapi tetap ada toleransi ketidakmiripan yang wajar
  27. Kepala sekolah memiliki wewenang untuk membypass jika toleransi vektor salah
  28. Izinkan mengganti tanda tangan atas izin kepala sekolah
+
+ # Catatan
+ perbaiki hardware resources usage agar mematikan kamera misal saat tidak diperlukan
+
+ nama yang ada di wayground live seringkali tidak muat dan menjadi .. , tolong perbaiki dengan menjadikannya text running

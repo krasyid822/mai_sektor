@@ -81,7 +81,7 @@ class DashboardController extends Notifier<DashboardState> {
     final initialBobotTugas = config?.bobotTugas ?? 20.0;
     final initialNilaiMin = config?.nilaiMinimum ?? 75.0;
 
-    _updateAudioSource("Nasyid Perjuangan - Harapan Ummah", 0.5);
+    _updateAudioSource("Nasyid Perjuangan - Harapan Ummah", 0.5, isPlaying: false);
 
     ref.onDispose(() {
       _audioElement?.pause();
@@ -96,13 +96,13 @@ class DashboardController extends Notifier<DashboardState> {
     );
   }
 
-  void _updateAudioSource(String track, double volume) {
+  void _updateAudioSource(String track, double volume, {required bool isPlaying}) {
     if (_audioElement == null) return;
     final url = _trackUrls[track];
     if (url != null) {
       _audioElement!.src = url;
       _audioElement!.volume = volume;
-      if (state.isPlaying) {
+      if (isPlaying) {
         _audioElement!.play();
       }
     }
@@ -121,7 +121,7 @@ class DashboardController extends Notifier<DashboardState> {
 
   void changeTrack(String track) {
     state = state.copyWith(currentTrack: track);
-    _updateAudioSource(track, state.volume);
+    _updateAudioSource(track, state.volume, isPlaying: state.isPlaying);
   }
 
   void skipTrack(bool forward) {

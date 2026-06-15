@@ -7,6 +7,7 @@ import 'features/auth/setup_screen.dart';
 import 'features/dashboard/live_dashboard.dart';
 import 'features/session/session_router.dart';
 import 'features/qudwah/qudwah_form.dart';
+import 'features/shared/informative_splash_loading.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,10 +121,8 @@ class _RootNavigationRouterState extends ConsumerState<RootNavigationRouter> {
             return const LiveDashboard();
         }
       },
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.tealAccent),
-        ),
+      loading: () => const InformativeSplashLoading(
+        statusMessage: "Mengunduh konfigurasi server...",
       ),
       error: (e, stack) => Scaffold(
         body: Center(

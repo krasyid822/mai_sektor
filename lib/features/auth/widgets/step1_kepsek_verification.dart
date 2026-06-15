@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signature/signature.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import '../setup_controller.dart';
 import '../../shared/signature_upload_widget.dart';
+import '../../shared/title_case_formatter.dart';
 
 class Step1KepsekVerification extends ConsumerWidget {
   final GlobalKey<FormState> formKey;
@@ -34,12 +36,16 @@ class Step1KepsekVerification extends ConsumerWidget {
     String? Function(String?)? validator,
     TextInputAction? textInputAction,
     void Function(String)? onFieldSubmitted,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
       style: const TextStyle(color: Colors.white),
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Colors.tealAccent),
         labelText: label,
@@ -222,6 +228,8 @@ class Step1KepsekVerification extends ConsumerWidget {
               controller: kepsekController,
               label: 'Nama Lengkap Kepala Sekolah',
               icon: Icons.person,
+              textCapitalization: TextCapitalization.words,
+              inputFormatters: [TitleCaseTextInputFormatter()],
               validator: (val) =>
                   val == null || val.isEmpty ? 'Nama wajib diisi' : null,
               textInputAction: TextInputAction.done,
@@ -300,8 +308,10 @@ class Step1KepsekVerification extends ConsumerWidget {
           if (state.isCameraInitialized && state.cameraController != null)
             Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
                   children: [
                     const Text(
                       "Pemindaian Wajah untuk Verifikasi Sesi",
@@ -309,9 +319,9 @@ class Step1KepsekVerification extends ConsumerWidget {
                         color: Colors.white70,
                         fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    if (state.cameras.length > 1) ...[
-                      const SizedBox(width: 8),
+                    if (state.cameras.length > 1)
                       IconButton(
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
@@ -323,7 +333,6 @@ class Step1KepsekVerification extends ConsumerWidget {
                         tooltip: 'Ganti Kamera',
                         onPressed: controller.switchCamera,
                       ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -452,8 +461,10 @@ class Step1KepsekVerification extends ConsumerWidget {
           else if (state.isCameraInitialized && state.cameraController != null)
             Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
                   children: [
                     const Text(
                       "Pemindaian Vektor Wajah Kepala Sekolah",
@@ -461,9 +472,9 @@ class Step1KepsekVerification extends ConsumerWidget {
                         color: Colors.white70,
                         fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    if (state.cameras.length > 1) ...[
-                      const SizedBox(width: 8),
+                    if (state.cameras.length > 1)
                       IconButton(
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
@@ -475,7 +486,6 @@ class Step1KepsekVerification extends ConsumerWidget {
                         tooltip: 'Ganti Kamera',
                         onPressed: controller.switchCamera,
                       ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 8),

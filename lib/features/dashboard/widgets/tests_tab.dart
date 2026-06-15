@@ -95,6 +95,18 @@ class TestsTab extends ConsumerWidget {
                     ...test.answers.entries.map((entry) {
                       String questionText = entry.key;
                       if (type == 'pre') {
+                        if (entry.key == 'q1_pernah_dengar') {
+                          questionText = "1. Apakah Antum sudah pernah mendengar materi tersebut?";
+                        } else if (entry.key == 'q2_point_penting') {
+                          questionText = "2. Point-point penting mengenai materi";
+                        } else if (entry.key == 'q3_pentingnya_materi') {
+                          questionText = "3. Sejauh apa pentingnya materi tersebut";
+                        } else if (entry.key == 'q4_belum_paham') {
+                          questionText = "4. Bagian mana dari materi yang belum dipahami";
+                        } else if (entry.key == 'q5_kesan_ekspektasi') {
+                          questionText = "5. Kesan dan ekspektasi terhadap pemberi materi";
+                        }
+                      } else {
                         if (entry.key == 'q1_uraian') {
                           questionText = "1. Uraikan Kembali Materi tersebut dengan singkat dan jelas";
                         } else if (entry.key == 'q2_dalil_aqli') {
@@ -107,18 +119,6 @@ class TestsTab extends ConsumerWidget {
                           questionText = "5. Khazanah baru yang diperoleh dan rencana strategi";
                         } else if (entry.key == 'rating_pemateri') {
                           questionText = "Penilaian untuk pemateri (1-5)";
-                        }
-                      } else {
-                        if (entry.key == 'q1_pernah_dengar') {
-                          questionText = "1. Apakah Antum sudah pernah mendengar materi tersebut?";
-                        } else if (entry.key == 'q2_point_penting') {
-                          questionText = "2. Point-point penting mengenai materi";
-                        } else if (entry.key == 'q3_pentingnya_materi') {
-                          questionText = "3. Sejauh apa pentingnya materi tersebut";
-                        } else if (entry.key == 'q4_belum_paham') {
-                          questionText = "4. Bagian mana dari materi yang belum dipahami";
-                        } else if (entry.key == 'q5_kesan_ekspektasi') {
-                          questionText = "5. Kesan dan ekspektasi terhadap pemberi materi";
                         }
                       }
 

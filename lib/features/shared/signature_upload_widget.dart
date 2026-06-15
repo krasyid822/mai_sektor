@@ -70,18 +70,19 @@ class _SignatureUploadWidgetState extends State<SignatureUploadWidget> {
                 color: Colors.white10,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: GestureDetector(
-                onPanStart: (details) {
+              child: Listener(
+                onPointerDown: (event) {
                   _isDrawing = true;
                   _rawPoints.clear();
                   _smoothedPoints.clear();
-                  _rawPoints.add(details.localPosition);
-                  _smoothedPoints.add(details.localPosition);
-                  _addTapPoint(details.localPosition);
+                  _rawPoints.add(event.localPosition);
+                  _smoothedPoints.add(event.localPosition);
+                  _addTapPoint(event.localPosition);
+                  setState(() {});
                 },
-                onPanUpdate: (details) {
+                onPointerMove: (event) {
                   if (!_isDrawing) return;
-                  final pos = details.localPosition;
+                  final pos = event.localPosition;
 
                   // Filter out tiny movements (trackpad noise)
                   if (_rawPoints.isNotEmpty) {
@@ -100,21 +101,34 @@ class _SignatureUploadWidgetState extends State<SignatureUploadWidget> {
                   widget.controller.addPoint(
                     Point(smoothed, PointType.move, 1.0),
                   );
+                  setState(() {});
                 },
-                onPanEnd: (_) {
+                onPointerUp: (event) {
+                  if (!_isDrawing) return;
                   _isDrawing = false;
                   widget.controller.pushCurrentStateToUndoStack();
                   widget.controller.onDrawEnd?.call();
+                  setState(() {});
                 },
-                onPanCancel: () {
+                onPointerCancel: (event) {
                   _isDrawing = false;
+                  setState(() {});
                 },
-                child: CustomPaint(
-                  painter: _SmoothSignaturePainter(
-                    widget.controller,
-                    _smoothedPoints,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragStart: (_) {},
+                  onVerticalDragUpdate: (_) {},
+                  onVerticalDragEnd: (_) {},
+                  onHorizontalDragStart: (_) {},
+                  onHorizontalDragUpdate: (_) {},
+                  onHorizontalDragEnd: (_) {},
+                  child: CustomPaint(
+                    painter: _SmoothSignaturePainter(
+                      widget.controller,
+                      _smoothedPoints,
+                    ),
+                    size: Size.infinite,
                   ),
-                  size: Size.infinite,
                 ),
               ),
             ),

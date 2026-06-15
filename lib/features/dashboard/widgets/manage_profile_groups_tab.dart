@@ -5,6 +5,7 @@ import 'package:signature/signature.dart';
 import '../../shared/models.dart';
 import '../../shared/firebase_service.dart';
 import '../../shared/signature_upload_widget.dart';
+import '../../shared/title_case_formatter.dart';
 import '../dashboard_controller.dart';
 
 class ManageProfileAndGroupsTab extends ConsumerStatefulWidget {
@@ -254,6 +255,8 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                   TextField(
                     controller: _kadivController,
                     style: const TextStyle(color: Colors.white),
+                    textCapitalization: TextCapitalization.words,
+                    inputFormatters: [TitleCaseTextInputFormatter()],
                     decoration: InputDecoration(
                       labelText: "Nama Kepala Divisi MAI",
                       labelStyle: const TextStyle(color: Colors.white70),
@@ -280,6 +283,7 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                           kepsekSignatureBase64: widget.config.kepsekSignatureBase64,
                           kadivNama: widget.config.kadivNama,
                           kadivSignatureBase64: null,
+                          activeMateri: widget.config.activeMateri,
                         ),
                       );
                     },
@@ -321,6 +325,7 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                           kepsekSignatureBase64: widget.config.kepsekSignatureBase64,
                           kadivNama: kadivName,
                           kadivSignatureBase64: kadivSigBase64,
+                          activeMateri: widget.config.activeMateri,
                         ),
                       );
 
@@ -371,6 +376,8 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                               TextField(
                                 controller: _newTeacherController,
                                 style: const TextStyle(color: Colors.white),
+                                textCapitalization: TextCapitalization.words,
+                                inputFormatters: [TitleCaseTextInputFormatter()],
                                 decoration: const InputDecoration(
                                   hintText: "Nama Guru/Walikelas...",
                                   hintStyle: TextStyle(color: Colors.white30),
@@ -424,6 +431,8 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                               TextField(
                                 controller: _newParticipantController,
                                 style: const TextStyle(color: Colors.white),
+                                textCapitalization: TextCapitalization.words,
+                                inputFormatters: [TitleCaseTextInputFormatter()],
                                 decoration: const InputDecoration(
                                   hintText: "Nama Peserta Baru...",
                                   hintStyle: TextStyle(color: Colors.white30),

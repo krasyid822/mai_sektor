@@ -80,6 +80,7 @@ class Attendance {
   final String? signatureBase64;
   final String? faceVector;
   final String? errorReport;
+  final String? materi;
 
   Attendance({
     required this.id,
@@ -89,6 +90,7 @@ class Attendance {
     this.signatureBase64,
     this.faceVector,
     this.errorReport,
+    this.materi,
   });
 
   Map<String, dynamic> toMap() {
@@ -99,6 +101,7 @@ class Attendance {
       'signatureBase64': signatureBase64,
       'faceVector': faceVector,
       'errorReport': errorReport,
+      'materi': materi,
     };
   }
 
@@ -112,6 +115,7 @@ class Attendance {
       signatureBase64: map['signatureBase64'],
       faceVector: map['faceVector'],
       errorReport: map['errorReport'],
+      materi: map['materi'],
     );
   }
 }
@@ -211,8 +215,7 @@ class RoomQudwahEvaluation {
 }
 
 class AppConfig {
-  final String
-  activeMode; // 'absensi', 'pretest', 'posttest', 'kontrak', 'idle'
+  final String activeMode; // 'absensi', 'pretest', 'posttest', 'kontrak', 'idle'
   final String kepalaSekolahNama;
   final String kepengurusanTahun;
   final double bobotKelasBesar;
@@ -222,6 +225,7 @@ class AppConfig {
   final String? kepsekSignatureBase64;
   final String? kadivNama;
   final String? kadivSignatureBase64;
+  final String activeMateri;
 
   AppConfig({
     required this.activeMode,
@@ -234,6 +238,7 @@ class AppConfig {
     this.kepsekSignatureBase64,
     this.kadivNama,
     this.kadivSignatureBase64,
+    this.activeMateri = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -248,6 +253,7 @@ class AppConfig {
       'kepsekSignatureBase64': kepsekSignatureBase64,
       'kadivNama': kadivNama,
       'kadivSignatureBase64': kadivSignatureBase64,
+      'activeMateri': activeMateri,
     };
   }
 
@@ -263,6 +269,7 @@ class AppConfig {
       kepsekSignatureBase64: map['kepsekSignatureBase64'],
       kadivNama: map['kadivNama'],
       kadivSignatureBase64: map['kadivSignatureBase64'],
+      activeMateri: map['activeMateri'] ?? '',
     );
   }
 }

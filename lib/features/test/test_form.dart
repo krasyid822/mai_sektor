@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../shared/models.dart';
 import '../shared/firebase_service.dart';
+import '../shared/title_case_formatter.dart';
 
 class TestForm extends ConsumerStatefulWidget {
   final String testType; // 'pre' or 'post'
@@ -68,8 +69,8 @@ class _TestFormState extends ConsumerState<TestForm> {
       html.window.console.log('[TestForm] Duplicate check error: $e');
     }
 
-    // Store rating inside answers if pretest
-    if (widget.testType == 'pre') {
+    // Store rating inside answers if posttest
+    if (widget.testType == 'post') {
       _answers['rating_pemateri'] = _pemateriRating.toStringAsFixed(0);
     }
 
@@ -110,6 +111,19 @@ class _TestFormState extends ConsumerState<TestForm> {
 
   @override
   Widget build(BuildContext context) {
+    final configAsync = ref.watch(configStreamProvider);
+    final activeMateri = configAsync.value?.activeMateri ?? '';
+    if (activeMateri.isNotEmpty && _materiController.text != activeMateri) {
+      _materiController.text = activeMateri;
+    }
+
+    ref.listen<AsyncValue<AppConfig?>>(configStreamProvider, (prev, next) {
+      final newMateri = next.value?.activeMateri ?? '';
+      if (newMateri.isNotEmpty && _materiController.text != newMateri) {
+        _materiController.text = newMateri;
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: Center(
@@ -180,7 +194,11 @@ class _TestFormState extends ConsumerState<TestForm> {
                             child: Text(name),
                           );
                         }).toList(),
-                        onChanged: (val) => setState(() => _selectedName = val),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedName = val;
+                          });
+                        },
                         validator: (val) =>
                             val == null ? 'Nama wajib diisi' : null,
                       );
@@ -188,11 +206,43 @@ class _TestFormState extends ConsumerState<TestForm> {
                   ),
                   const SizedBox(height: 16),
 
-                  _buildTextField(
-                    controller: _materiController,
-                    label: 'Materi (Judul/Tema)',
-                    placeholder: 'Contoh: Konsekuensi Syahadatain',
-                  ),
+                   activeMateri.isNotEmpty
+                      ? _buildTextField(
+                          controller: _materiController,
+                          label: 'Materi (Judul/Tema)',
+                          placeholder: '',
+                          readOnly: true,
+                        )
+                      : DropdownButtonFormField<String>(
+                          dropdownColor: const Color(0xFF1E293B),
+                          style: const TextStyle(color: Colors.white),
+                          initialValue: ['Urgensi Membina', 'Al Qudwah Qobla Dakwah', 'Manajemen Mentoring Aktif', 'Seni Menyentuh Hati'].contains(_materiController.text) ? _materiController.text : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Materi (Judul/Tema)',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            hintText: 'Pilih materi yang diikuti',
+                          ),
+                          items: [
+                            "Urgensi Membina",
+                            "Al Qudwah Qobla Dakwah",
+                            "Manajemen Mentoring Aktif",
+                            "Seni Menyentuh Hati"
+                          ].map((m) {
+                            return DropdownMenuItem(
+                              value: m,
+                              child: Text(m, style: const TextStyle(color: Colors.white)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _materiController.text = val;
+                              });
+                            }
+                          },
+                          validator: (val) =>
+                              _materiController.text.isEmpty ? 'Wajib memilih materi' : null,
+                        ),
                   const SizedBox(height: 16),
 
                   _buildTextField(
@@ -215,6 +265,37 @@ class _TestFormState extends ConsumerState<TestForm> {
 
                   // Questions
                   if (widget.testType == 'pre') ...[
+                    _buildQuestionField(
+                      keyName: 'q1_pernah_dengar',
+                      question:
+                          '1. Apakah Antum sudah pernah mendengar materi tersebut?',
+                      placeholder: 'Pernah/Belum...',
+                    ),
+                    _buildQuestionField(
+                      keyName: 'q2_point_penting',
+                      question:
+                          '2. Jika sudah, coba antum sebutkan point-point penting mengenai materi!',
+                      placeholder: 'Point-point penting materi...',
+                    ),
+                    _buildQuestionField(
+                      keyName: 'q3_pentingnya_materi',
+                      question:
+                          '3. Jika belum, coba antum uraikan sejauh apa pentingnya materi tersebut!',
+                      placeholder: 'Urgensi materi menurut pandangan antum...',
+                    ),
+                    _buildQuestionField(
+                      keyName: 'q4_belum_paham',
+                      question:
+                          '4. Jika sudah, bagian mana dari materi tersebut yang belum antum pahami?',
+                      placeholder: 'Bagian materi yang belum jelas...',
+                    ),
+                    _buildQuestionField(
+                      keyName: 'q5_kesan_ekspektasi',
+                      question:
+                          '5. Jika belum, apa kesan dan ekspektasi antum terhadap pemberi materi?',
+                      placeholder: 'Kesan dan harapan untuk pemateri...',
+                    ),
+                  ] else ...[
                     _buildQuestionField(
                       keyName: 'q1_uraian',
                       question:
@@ -259,37 +340,6 @@ class _TestFormState extends ConsumerState<TestForm> {
                       label: _pemateriRating.round().toString(),
                       onChanged: (val) => setState(() => _pemateriRating = val),
                     ),
-                  ] else ...[
-                    _buildQuestionField(
-                      keyName: 'q1_pernah_dengar',
-                      question:
-                          '1. Apakah Antum sudah pernah mendengar materi tersebut?',
-                      placeholder: 'Pernah/Belum...',
-                    ),
-                    _buildQuestionField(
-                      keyName: 'q2_point_penting',
-                      question:
-                          '2. Jika sudah, coba antum sebutkan point-point penting mengenai materi!',
-                      placeholder: 'Point-point penting materi...',
-                    ),
-                    _buildQuestionField(
-                      keyName: 'q3_pentingnya_materi',
-                      question:
-                          '3. Jika belum, coba antum uraikan sejauh apa pentingnya materi tersebut!',
-                      placeholder: 'Urgensi materi menurut pandangan antum...',
-                    ),
-                    _buildQuestionField(
-                      keyName: 'q4_belum_paham',
-                      question:
-                          '4. Jika sudah, bagian mana dari materi tersebut yang belum antum pahami?',
-                      placeholder: 'Bagian materi yang belum jelas...',
-                    ),
-                    _buildQuestionField(
-                      keyName: 'q5_kesan_ekspektasi',
-                      question:
-                          '5. Jika belum, apa kesan dan ekspektasi antum terhadap pemberi materi?',
-                      placeholder: 'Kesan dan harapan untuk pemateri...',
-                    ),
                   ],
 
                   const SizedBox(height: 32),
@@ -318,15 +368,20 @@ class _TestFormState extends ConsumerState<TestForm> {
     required TextEditingController controller,
     required String label,
     required String placeholder,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      readOnly: readOnly,
+      style: TextStyle(color: readOnly ? Colors.white54 : Colors.white),
+      textCapitalization: TextCapitalization.words,
+      inputFormatters: [TitleCaseTextInputFormatter()],
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
         hintText: placeholder,
         hintStyle: const TextStyle(color: Colors.white38),
+        suffixIcon: readOnly ? const Icon(Icons.lock, color: Colors.white38, size: 18) : null,
       ),
       validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
     );

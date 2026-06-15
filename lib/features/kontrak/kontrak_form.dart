@@ -6,6 +6,7 @@ import 'package:signature/signature.dart';
 import '../shared/models.dart';
 import '../shared/firebase_service.dart';
 import '../shared/signature_helper.dart';
+import '../shared/signature_upload_widget.dart';
 
 class KontrakForm extends ConsumerStatefulWidget {
   const KontrakForm({super.key});
@@ -297,29 +298,11 @@ class _KontrakFormState extends ConsumerState<KontrakForm> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Signature Pad
-                  const Text(
-                    "Tanda Tangan Peserta (Harus sesuai pendaftaran)",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Signature(
-                      controller: _sigController,
-                      height: 150,
-                      backgroundColor: Colors.white10,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => _sigController.clear(),
-                      child: const Text(
-                        "Bersihkan Pad",
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
+                  SignatureUploadWidget(
+                    controller: _sigController,
+                    title: "Tanda Tangan Peserta (Harus sesuai pendaftaran)",
+                    height: 150,
+                    onCleared: () => _sigController.clear(),
                   ),
                   const SizedBox(height: 24),
 

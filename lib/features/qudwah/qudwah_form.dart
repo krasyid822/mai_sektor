@@ -4,6 +4,7 @@ import 'package:signature/signature.dart';
 import '../shared/models.dart';
 import '../shared/firebase_service.dart';
 import '../shared/signature_upload_widget.dart';
+import '../shared/title_case_formatter.dart';
 
 class QudwahForm extends ConsumerStatefulWidget {
   final String? initialWalikelas;
@@ -175,6 +176,8 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
                   TextFormField(
                     controller: _walikelasController,
                     style: const TextStyle(color: Colors.white),
+                    textCapitalization: TextCapitalization.words,
+                    inputFormatters: [TitleCaseTextInputFormatter()],
                     decoration: const InputDecoration(
                       labelText: 'Nama Wali Kelas',
                       labelStyle: TextStyle(color: Colors.white70),

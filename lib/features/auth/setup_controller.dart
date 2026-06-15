@@ -144,9 +144,17 @@ class SetupController extends Notifier<SetupState> {
     final nextIndex = (state.selectedCameraIndex + 1) % state.cameras.length;
     final selectedCamera = state.cameras[nextIndex];
 
+    state = state.copyWith(
+      isCameraInitialized: false,
+    );
+
     if (state.cameraController != null) {
       await state.cameraController!.dispose();
+      state = state.copyWith(cameraController: () => null);
     }
+
+    // Give hardware / browser some time to release camera lock
+    await Future.delayed(const Duration(milliseconds: 300));
 
     final newController = CameraController(
       selectedCamera,
@@ -162,6 +170,8 @@ class SetupController extends Notifier<SetupState> {
       );
     } catch (e) {
       debugPrint("Camera switch error: $e");
+      // Fallback to re-initialize camera
+      await initializeCamera();
     }
   }
 
@@ -710,4 +720,5 @@ class SetupController extends Notifier<SetupState> {
 
 final setupControllerProvider = NotifierProvider<SetupController, SetupState>(
   SetupController.new,
+  isAutoDispose: true,
 );

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signature/signature.dart';
 import 'package:camera/camera.dart';
 import '../shared/firebase_service.dart';
+import '../shared/signature_upload_widget.dart';
+import '../shared/title_case_formatter.dart';
 import 'attendance_controller.dart';
 
 class AttendanceForm extends ConsumerStatefulWidget {
@@ -160,9 +162,11 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         );
                       },
                     )
-                  else
+                   else
                     TextFormField(
                       style: const TextStyle(color: Colors.white),
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [TitleCaseTextInputFormatter()],
                       decoration: const InputDecoration(
                         labelText: 'Nama Tamu',
                         labelStyle: TextStyle(color: Colors.white70),
@@ -179,6 +183,8 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                   TextFormField(
                     controller: _murobbiController,
                     style: const TextStyle(color: Colors.white),
+                    textCapitalization: TextCapitalization.words,
+                    inputFormatters: [TitleCaseTextInputFormatter()],
                     decoration: const InputDecoration(
                       labelText: 'Nama Murobbi / Mentor',
                       labelStyle: TextStyle(color: Colors.white70),
@@ -249,8 +255,10 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                   if (state.isCameraInitialized && state.cameraController != null)
                     Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
                           children: [
                             const Text(
                               "Pemindaian Vektor Wajah Real-time",
@@ -258,9 +266,9 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                                 color: Colors.white70,
                                 fontWeight: FontWeight.bold,
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            if (state.cameras.length > 1) ...[
-                              const SizedBox(width: 8),
+                            if (state.cameras.length > 1)
                               IconButton(
                                 constraints: const BoxConstraints(),
                                 padding: EdgeInsets.zero,
@@ -272,7 +280,6 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                                 tooltip: 'Ganti Kamera',
                                 onPressed: controller.switchCamera,
                               ),
-                            ],
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -287,32 +294,11 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                       ],
                     ),
 
-                  // Signature pad
-                  const Text(
-                    "Tanda Tangan Digital",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Signature(
-                      controller: _sigController,
-                      height: 150,
-                      backgroundColor: Colors.white10,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () => _sigController.clear(),
-                      child: const Text(
-                        "Bersihkan Pad",
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
+                  SignatureUploadWidget(
+                    controller: _sigController,
+                    title: "Tanda Tangan Digital",
+                    height: 150,
+                    onCleared: () => _sigController.clear(),
                   ),
 
                   // Error report
