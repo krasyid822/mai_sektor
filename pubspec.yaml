@@ -67,6 +67,7 @@ flutter:
   assets:
     - assets/kop_surat/header.png
     - assets/kop_surat/footer.png
+    - assets/kop_surat/header_landscape.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -22,7 +22,7 @@ class SetupState {
   final List<String> selectedParticipantsForGrouping;
   final bool isSaving;
   final Identity? existingIdentity;
-  
+
   // Camera state
   final CameraController? cameraController;
   final bool isCameraInitialized;
@@ -81,11 +81,19 @@ class SetupState {
       participants: participants ?? this.participants,
       presenters: presenters ?? this.presenters,
       groupings: groupings ?? this.groupings,
-      selectedTeacherForGrouping: selectedTeacherForGrouping != null ? selectedTeacherForGrouping() : this.selectedTeacherForGrouping,
-      selectedParticipantsForGrouping: selectedParticipantsForGrouping ?? this.selectedParticipantsForGrouping,
+      selectedTeacherForGrouping: selectedTeacherForGrouping != null
+          ? selectedTeacherForGrouping()
+          : this.selectedTeacherForGrouping,
+      selectedParticipantsForGrouping:
+          selectedParticipantsForGrouping ??
+          this.selectedParticipantsForGrouping,
       isSaving: isSaving ?? this.isSaving,
-      existingIdentity: existingIdentity != null ? existingIdentity() : this.existingIdentity,
-      cameraController: cameraController != null ? cameraController() : this.cameraController,
+      existingIdentity: existingIdentity != null
+          ? existingIdentity()
+          : this.existingIdentity,
+      cameraController: cameraController != null
+          ? cameraController()
+          : this.cameraController,
       isCameraInitialized: isCameraInitialized ?? this.isCameraInitialized,
       cameras: cameras ?? this.cameras,
       selectedCameraIndex: selectedCameraIndex ?? this.selectedCameraIndex,
@@ -147,9 +155,7 @@ class SetupController extends Notifier<SetupState> {
     final nextIndex = (state.selectedCameraIndex + 1) % state.cameras.length;
     final selectedCamera = state.cameras[nextIndex];
 
-    state = state.copyWith(
-      isCameraInitialized: false,
-    );
+    state = state.copyWith(isCameraInitialized: false);
 
     if (_cameraController != null) {
       await _cameraController!.dispose();
@@ -196,27 +202,32 @@ class SetupController extends Notifier<SetupState> {
     final updatedTeachers = List<String>.from(state.teachers)..remove(name);
     final updatedGroupings = Map<String, List<String>>.from(state.groupings);
     final groupParticipants = updatedGroupings.remove(name) ?? [];
-    
+
     // Return participants back to general pool
-    final updatedParticipants = List<String>.from(state.participants)..addAll(groupParticipants);
-    
+    final updatedParticipants = List<String>.from(state.participants)
+      ..addAll(groupParticipants);
+
     state = state.copyWith(
       teachers: updatedTeachers,
       groupings: updatedGroupings,
       participants: updatedParticipants,
-      selectedTeacherForGrouping: state.selectedTeacherForGrouping == name ? () => null : () => state.selectedTeacherForGrouping,
+      selectedTeacherForGrouping: state.selectedTeacherForGrouping == name
+          ? () => null
+          : () => state.selectedTeacherForGrouping,
     );
   }
 
   void addParticipant(String name) {
     if (name.isNotEmpty && !state.participants.contains(name)) {
-      final updatedParticipants = List<String>.from(state.participants)..add(name);
+      final updatedParticipants = List<String>.from(state.participants)
+        ..add(name);
       state = state.copyWith(participants: updatedParticipants);
     }
   }
 
   void removeParticipant(String name) {
-    final updatedParticipants = List<String>.from(state.participants)..remove(name);
+    final updatedParticipants = List<String>.from(state.participants)
+      ..remove(name);
     state = state.copyWith(participants: updatedParticipants);
   }
 
@@ -237,7 +248,9 @@ class SetupController extends Notifier<SetupState> {
   }
 
   void toggleParticipantSelection(String participantName, bool selected) {
-    final updatedSelections = List<String>.from(state.selectedParticipantsForGrouping);
+    final updatedSelections = List<String>.from(
+      state.selectedParticipantsForGrouping,
+    );
     if (selected) {
       if (!updatedSelections.contains(participantName)) {
         updatedSelections.add(participantName);
@@ -249,13 +262,15 @@ class SetupController extends Notifier<SetupState> {
   }
 
   void assignParticipantsToTeacher() {
-    if (state.selectedTeacherForGrouping == null || state.selectedParticipantsForGrouping.isEmpty) {
+    if (state.selectedTeacherForGrouping == null ||
+        state.selectedParticipantsForGrouping.isEmpty) {
       return;
     }
 
     final teacher = state.selectedTeacherForGrouping!;
     final updatedGroupings = Map<String, List<String>>.from(state.groupings);
-    final teacherGroup = List<String>.from(updatedGroupings[teacher] ?? [])..addAll(state.selectedParticipantsForGrouping);
+    final teacherGroup = List<String>.from(updatedGroupings[teacher] ?? [])
+      ..addAll(state.selectedParticipantsForGrouping);
     updatedGroupings[teacher] = teacherGroup;
 
     final updatedParticipants = List<String>.from(state.participants)
@@ -271,10 +286,12 @@ class SetupController extends Notifier<SetupState> {
   void removeParticipantFromTeacher(String teacher, String participant) {
     final updatedGroupings = Map<String, List<String>>.from(state.groupings);
     if (updatedGroupings.containsKey(teacher)) {
-      final list = List<String>.from(updatedGroupings[teacher]!)..remove(participant);
+      final list = List<String>.from(updatedGroupings[teacher]!)
+        ..remove(participant);
       updatedGroupings[teacher] = list;
     }
-    final updatedParticipants = List<String>.from(state.participants)..add(participant);
+    final updatedParticipants = List<String>.from(state.participants)
+      ..add(participant);
     state = state.copyWith(
       groupings: updatedGroupings,
       participants: updatedParticipants,
@@ -290,7 +307,9 @@ class SetupController extends Notifier<SetupState> {
     if (name.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Harap masukkan nama lengkap Kepala Sekolah!')),
+          const SnackBar(
+            content: Text('Harap masukkan nama lengkap Kepala Sekolah!'),
+          ),
         );
       }
       return;
@@ -301,25 +320,34 @@ class SetupController extends Notifier<SetupState> {
     try {
       final firestore = ref.read(firestoreProvider);
 
-      final configDoc = await firestore.collection('config').doc('global').get();
+      final configDoc = await firestore
+          .collection('config')
+          .doc('global')
+          .get();
       AppConfig? currentConfig;
       if (configDoc.exists && configDoc.data() != null) {
         currentConfig = AppConfig.fromMap(configDoc.data()!);
       }
 
-      final identityDoc = await firestore.collection('identities').doc(name).get();
+      final identityDoc = await firestore
+          .collection('identities')
+          .doc(name)
+          .get();
       Identity? existingIdentity;
       if (identityDoc.exists && identityDoc.data() != null) {
         existingIdentity = Identity.fromMap(identityDoc.data()!);
       }
 
       if (currentConfig != null) {
-        if (currentConfig.kepalaSekolahNama.toLowerCase() == name.toLowerCase() &&
+        if (currentConfig.kepalaSekolahNama.toLowerCase() ==
+                name.toLowerCase() &&
             currentConfig.kepengurusanTahun == year) {
-          final hasSignature = existingIdentity != null &&
+          final hasSignature =
+              existingIdentity != null &&
               existingIdentity.signatureVector != null &&
               existingIdentity.signatureVector!.isNotEmpty;
-          final hasFace = existingIdentity != null &&
+          final hasFace =
+              existingIdentity != null &&
               existingIdentity.faceVector != null &&
               existingIdentity.faceVector!.isNotEmpty;
 
@@ -332,7 +360,10 @@ class SetupController extends Notifier<SetupState> {
             isAlreadyConfigured: true,
           );
           if (existingIdentity != null) {
-            onStateLoad(existingIdentity.whatsapp ?? '', existingIdentity.gender ?? 'ikhwan');
+            onStateLoad(
+              existingIdentity.whatsapp ?? '',
+              existingIdentity.gender ?? 'ikhwan',
+            );
           }
         } else {
           if (context.mounted) {
@@ -347,10 +378,12 @@ class SetupController extends Notifier<SetupState> {
           }
         }
       } else {
-        final hasSignature = existingIdentity != null &&
+        final hasSignature =
+            existingIdentity != null &&
             existingIdentity.signatureVector != null &&
             existingIdentity.signatureVector!.isNotEmpty;
-        final hasFace = existingIdentity != null &&
+        final hasFace =
+            existingIdentity != null &&
             existingIdentity.faceVector != null &&
             existingIdentity.faceVector!.isNotEmpty;
 
@@ -373,7 +406,10 @@ class SetupController extends Notifier<SetupState> {
             isReverifying: false,
           );
           if (existingIdentity != null) {
-            onStateLoad(existingIdentity.whatsapp ?? '', existingIdentity.gender ?? 'ikhwan');
+            onStateLoad(
+              existingIdentity.whatsapp ?? '',
+              existingIdentity.gender ?? 'ikhwan',
+            );
           }
         }
       }
@@ -396,7 +432,11 @@ class SetupController extends Notifier<SetupState> {
     if (sigController.points.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Harap tanda tangani pad untuk memverifikasi identitas Anda!')),
+          const SnackBar(
+            content: Text(
+              'Harap tanda tangani pad untuk memverifikasi identitas Anda!',
+            ),
+          ),
         );
       }
       return;
@@ -405,7 +445,9 @@ class SetupController extends Notifier<SetupState> {
     if (state.cameraController == null || !state.isCameraInitialized) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kamera belum siap! Harap izinkan akses kamera.')),
+          const SnackBar(
+            content: Text('Kamera belum siap! Harap izinkan akses kamera.'),
+          ),
         );
       }
       return;
@@ -415,11 +457,19 @@ class SetupController extends Notifier<SetupState> {
 
     try {
       double sigMatchRate = 0.0;
-      if (state.existingIdentity != null && state.existingIdentity!.signatureVector != null) {
-        final parsedSig = SignatureHelper.parse(state.existingIdentity!.signatureVector);
+      if (state.existingIdentity != null &&
+          state.existingIdentity!.signatureVector != null) {
+        final parsedSig = SignatureHelper.parse(
+          state.existingIdentity!.signatureVector,
+        );
         if (parsedSig.points.isNotEmpty) {
-          final currentOffsets = sigController.points.map((p) => p.offset).toList();
-          sigMatchRate = SignatureHelper.calculateSimilarity(currentOffsets, parsedSig.points);
+          final currentOffsets = sigController.points
+              .map((p) => p.offset)
+              .toList();
+          sigMatchRate = SignatureHelper.calculateSimilarity(
+            currentOffsets,
+            parsedSig.points,
+          );
         } else {
           sigMatchRate = 100.0;
         }
@@ -443,18 +493,29 @@ class SetupController extends Notifier<SetupState> {
       }
 
       final photoFile = await state.cameraController!.takePicture();
-      final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+      final currentFaceVector = await BiometricHelper.extractFaceVector(
+        photoFile,
+      );
 
       double matchRate = 0.0;
       bool isLegacyMock = false;
 
-      if (state.existingIdentity != null && state.existingIdentity!.faceVector != null) {
-        if (state.existingIdentity!.faceVector == "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
+      if (state.existingIdentity != null &&
+          state.existingIdentity!.faceVector != null) {
+        if (state.existingIdentity!.faceVector ==
+            "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
           isLegacyMock = true;
           matchRate = 100.0;
         } else {
-          final registeredFaceVector = BiometricHelper.parseVectorString(state.existingIdentity!.faceVector!);
-          matchRate = BiometricHelper.calculateSimilarity(currentFaceVector, registeredFaceVector) * 100.0;
+          final registeredFaceVector = BiometricHelper.parseVectorString(
+            state.existingIdentity!.faceVector!,
+          );
+          matchRate =
+              BiometricHelper.calculateSimilarity(
+                currentFaceVector,
+                registeredFaceVector,
+              ) *
+              100.0;
         }
       } else {
         matchRate = 100.0;
@@ -531,7 +592,11 @@ class SetupController extends Notifier<SetupState> {
       if (sigController.points.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Harap tanda tangani pad untuk memverifikasi Kepala Sekolah!')),
+            const SnackBar(
+              content: Text(
+                'Harap tanda tangani pad untuk memverifikasi Kepala Sekolah!',
+              ),
+            ),
           );
         }
         return;
@@ -549,11 +614,17 @@ class SetupController extends Notifier<SetupState> {
         sigBytes,
         mimeType: 'image/png',
       ).toString();
-      signatureVectorValue = SignatureHelper.serialize(kepsekSigBase64, sigController.points);
+      signatureVectorValue = SignatureHelper.serialize(
+        kepsekSigBase64,
+        sigController.points,
+      );
     } else {
       signatureVectorValue = state.existingIdentity?.signatureVector;
-      if (signatureVectorValue != null && signatureVectorValue.startsWith('{')) {
-        kepsekSigBase64 = SignatureHelper.parse(signatureVectorValue).imageBase64;
+      if (signatureVectorValue != null &&
+          signatureVectorValue.startsWith('{')) {
+        kepsekSigBase64 = SignatureHelper.parse(
+          signatureVectorValue,
+        ).imageBase64;
       } else {
         kepsekSigBase64 = signatureVectorValue;
       }
@@ -564,14 +635,18 @@ class SetupController extends Notifier<SetupState> {
       if (state.cameraController == null || !state.isCameraInitialized) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Kamera belum siap! Harap izinkan akses kamera.')),
+            const SnackBar(
+              content: Text('Kamera belum siap! Harap izinkan akses kamera.'),
+            ),
           );
         }
         return;
       }
       try {
         final photoFile = await state.cameraController!.takePicture();
-        final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+        final currentFaceVector = await BiometricHelper.extractFaceVector(
+          photoFile,
+        );
         faceVectorString = currentFaceVector.toString();
       } catch (e) {
         if (context.mounted) {
@@ -638,10 +713,15 @@ class SetupController extends Notifier<SetupState> {
     required BuildContext context,
     required VoidCallback onSetupComplete,
   }) async {
-    if (state.teachers.isEmpty || state.groupings.values.every((list) => list.isEmpty)) {
+    if (state.teachers.isEmpty ||
+        state.groupings.values.every((list) => list.isEmpty)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Harap tambahkan guru/walikelas dan bagi kelompok peserta!')),
+          const SnackBar(
+            content: Text(
+              'Harap tambahkan guru/walikelas dan bagi kelompok peserta!',
+            ),
+          ),
         );
       }
       return;
@@ -679,13 +759,17 @@ class SetupController extends Notifier<SetupState> {
           name: config.kepalaSekolahNama,
           gender: gender,
           whatsapp: whatsapp,
-          signatureVector: kepsekSigBase64 != null ? SignatureHelper.serialize(kepsekSigBase64, sigController.points) : null,
+          signatureVector: kepsekSigBase64 != null
+              ? SignatureHelper.serialize(kepsekSigBase64, sigController.points)
+              : null,
           faceVector: faceVector,
         ),
       );
 
       for (final teacher in state.teachers) {
-        await firebaseService.saveIdentity(Identity(name: teacher, gender: 'ikhwan'));
+        await firebaseService.saveIdentity(
+          Identity(name: teacher, gender: 'ikhwan'),
+        );
       }
 
       for (final presenter in state.presenters) {

@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../shared/models.dart';
 import '../shared/firebase_service.dart';
+import '../shared/signature_helper.dart';
 
 class DashboardState {
   final bool isPlaying;
@@ -191,6 +192,7 @@ class DashboardController extends Notifier<DashboardState> {
         kadivSignatureBase64: currentConfig.kadivSignatureBase64,
         activeMateri: currentConfig.activeMateri,
         rekapSigned: currentConfig.rekapSigned,
+        kepalaSekolahNim: currentConfig.kepalaSekolahNim,
       );
       await ref.read(firebaseServiceProvider).saveConfig(updatedConfig);
     }
@@ -249,8 +251,11 @@ class DashboardController extends Notifier<DashboardState> {
         }
       }
 
-      // If no scores at all for this materi, skip it
-      if (preCount == 0 && postCount == 0) continue;
+      // If no scores at all for this materi, set to 0
+      if (preCount == 0 && postCount == 0) {
+        materiScores[materi] = 0.0;
+        continue;
+      }
 
       final preAvg = preCount > 0 ? preScore / preCount : 0.0;
       final postAvg = postCount > 0 ? postScore / postCount : 0.0;
@@ -275,36 +280,11 @@ class DashboardController extends Notifier<DashboardState> {
       kbMateriCount++;
     }
 
-    // If no materi scores, fallback to attendance-based score
-    if (kbMateriCount == 0) {
-      final hasAttendance = attendances.any(
-        (a) => a.identityName == participant.name && a.role == 'peserta',
-      );
-      final participantTests = tests.where((t) => t.name == participant.name);
-      double fallbackScore = 0.0;
-      int fbComponents = 0;
-      if (hasAttendance) {
-        fallbackScore += 100.0;
-        fbComponents++;
-      }
-      if (participantTests.isNotEmpty) {
-        for (final test in participantTests) {
-          fallbackScore += (test.score ?? 100).toDouble();
-          fbComponents++;
-        }
-      }
-      if (fbComponents > 0) {
-        fallbackScore /= fbComponents;
-      }
-      // Set all materi to fallback
-      for (final m in kMateriList) {
-        materiScores[m] = fallbackScore;
-      }
-      kelasBesarTotal = fallbackScore * kMateriList.length;
-      kbMateriCount = kMateriList.length;
-    }
-
-    final kelasBesarScore = kelasBesarTotal / kbMateriCount;
+    // Kelas Besar score is average of materi that have actual scores
+    // If no materi has scores at all, kelasBesarScore = 0
+    final kelasBesarScore = kbMateriCount > 0
+        ? kelasBesarTotal / kbMateriCount
+        : 0.0;
 
     // --- Room Qudwah ---
     final participantEvals = evaluations.where(
@@ -363,9 +343,67 @@ class DashboardController extends Notifier<DashboardState> {
         .replaceAll('—', '-');
   }
 
+  pw.Widget _pdfHeaderCell(String label) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(4),
+      alignment: pw.Alignment.center,
+      child: pw.Text(
+        label,
+        style: pw.TextStyle(
+          fontSize: 8,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColor.fromInt(0xFFFFFFFF),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _pdfGroupHeaderCell(String label) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(4),
+      alignment: pw.Alignment.center,
+      child: pw.Text(
+        label,
+        style: pw.TextStyle(
+          fontSize: 8,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColor.fromInt(0xFF1ABC9C),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _pdfSubHeaderCell(String label) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(3),
+      alignment: pw.Alignment.center,
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          left: pw.BorderSide(color: PdfColor.fromInt(0x33FFFFFF), width: 0.5),
+          right: pw.BorderSide(color: PdfColor.fromInt(0x33FFFFFF), width: 0.5),
+        ),
+      ),
+      child: pw.Text(
+        label,
+        style: pw.TextStyle(
+          fontSize: 7,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColor.fromInt(0xFF1ABC9C),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _pdfDataCell(String text) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(4),
+      alignment: pw.Alignment.center,
+      child: pw.Text(text, style: const pw.TextStyle(fontSize: 7)),
+    );
+  }
+
   Future<void> downloadRekapPDF({
-    required List<Identity> ikhwans,
-    required List<Identity> akhwats,
+    required List<Identity> participants,
     required List<RoomQudwahEvaluation> evals,
     required List<Test> tests,
     required AppConfig config,
@@ -379,7 +417,9 @@ class DashboardController extends Notifier<DashboardState> {
     pw.MemoryImage? headerImage;
     pw.MemoryImage? footerImage;
     try {
-      final headerData = await rootBundle.load('assets/kop_surat/header.png');
+      final headerData = await rootBundle.load(
+        'assets/kop_surat/header_landscape.png',
+      );
       headerImage = pw.MemoryImage(headerData.buffer.asUint8List());
     } catch (_) {}
     try {
@@ -387,67 +427,24 @@ class DashboardController extends Notifier<DashboardState> {
       footerImage = pw.MemoryImage(footerData.buffer.asUint8List());
     } catch (_) {}
 
-    List<pw.Widget> buildTableSection(
-      String title,
-      List<Identity> participants,
-    ) {
-      if (participants.isEmpty) return [];
-      return [
-        pw.Header(
-          level: 1,
-          title: title,
-          margin: const pw.EdgeInsets.only(bottom: 6),
-        ),
-        pw.TableHelper.fromTextArray(
-          headerStyle: pw.TextStyle(
-            fontSize: 9,
-            fontWeight: pw.FontWeight.bold,
-          ),
-          cellStyle: pw.TextStyle(fontSize: 8),
-          headers: [
-            'Nama',
-            'KB (1)',
-            'KB (2)',
-            'KB (3)',
-            'KB (4)',
-            'RQ',
-            'Tgs',
-            'Total',
-            'Status',
-          ],
-          data: participants.map((p) {
-            final scores = calculateParticipantScores(
-              participant: p,
-              evaluations: evals,
-              tests: tests,
-              attendances: attendances,
-              uploadedFiles: uploadedFiles,
-              resumeScores: resumeScores,
-              testScores: testScores,
-            );
-            final m1 = scores['materi_Urgensi Membina'] ?? 0.0;
-            final m2 = scores['materi_Al Qudwah Qobla Dakwah'] ?? 0.0;
-            final m3 = scores['materi_Manajemen Mentoring Aktif'] ?? 0.0;
-            final m4 = scores['materi_Seni Menyentuh Hati'] ?? 0.0;
-            final rq = scores['roomQudwah'] ?? 0.0;
-            final tg = scores['tugas'] ?? 0.0;
-            final total = scores['total'] ?? 0.0;
-            final status = total >= state.nilaiMin ? "LULUS" : "TIDAK LULUS";
-            return [
-              _sanitizePdfText(p.name),
-              m1.toStringAsFixed(0),
-              m2.toStringAsFixed(0),
-              m3.toStringAsFixed(0),
-              m4.toStringAsFixed(0),
-              rq.toStringAsFixed(0),
-              tg.toStringAsFixed(0),
-              total.toStringAsFixed(1),
-              status,
-            ];
-          }).toList(),
-        ),
-        pw.SizedBox(height: 12),
-      ];
+    // Load kepala sekolah signature image if signed
+    pw.MemoryImage? kepsekSigImage;
+    if (config.rekapSigned) {
+      String? kepsekBase64 = config.kepsekSignatureBase64;
+      if (kepsekBase64 != null && kepsekBase64.isNotEmpty) {
+        if (kepsekBase64.startsWith('{')) {
+          kepsekBase64 = SignatureHelper.parse(kepsekBase64).imageBase64;
+        }
+        try {
+          if (!kepsekBase64.startsWith('data:')) {
+            kepsekBase64 = 'data:image/png;base64,$kepsekBase64';
+          }
+          final uriData = Uri.parse(kepsekBase64).data;
+          if (uriData != null) {
+            kepsekSigImage = pw.MemoryImage(uriData.contentAsBytes());
+          }
+        } catch (_) {}
+      }
     }
 
     pdf.addPage(
@@ -455,15 +452,19 @@ class DashboardController extends Notifier<DashboardState> {
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(30),
         header: headerImage != null
-            ? (context) => pw.Container(
-                height: 40,
-                child: pw.Image(headerImage!, fit: pw.BoxFit.contain),
+            ? (context) => pw.Center(
+                child: pw.Container(
+                  height: 40,
+                  child: pw.Image(headerImage!, fit: pw.BoxFit.contain),
+                ),
               )
             : null,
         footer: footerImage != null
-            ? (context) => pw.Container(
-                height: 30,
-                child: pw.Image(footerImage!, fit: pw.BoxFit.contain),
+            ? (context) => pw.Center(
+                child: pw.Container(
+                  height: 30,
+                  child: pw.Image(footerImage!, fit: pw.BoxFit.contain),
+                ),
               )
             : null,
         build: (pw.Context context) => [
@@ -479,45 +480,129 @@ class DashboardController extends Notifier<DashboardState> {
             style: const pw.TextStyle(fontSize: 10),
           ),
           pw.SizedBox(height: 12),
-          ...buildTableSection("Ikhwan (Laki-laki)", ikhwans),
-          ...buildTableSection("Akhwat (Perempuan)", akhwats),
+          // Single table with all participants — two-level header
+          if (participants.isNotEmpty)
+            pw.Table(
+              border: pw.TableBorder.all(
+                color: PdfColor.fromInt(0xFFCCCCCC),
+                width: 0.5,
+              ),
+              columnWidths: {
+                0: const pw.FixedColumnWidth(120),
+                1: const pw.FixedColumnWidth(50),
+                2: const pw.FixedColumnWidth(50),
+                3: const pw.FixedColumnWidth(50),
+                4: const pw.FixedColumnWidth(50),
+                5: const pw.FixedColumnWidth(80),
+                6: const pw.FixedColumnWidth(60),
+                7: const pw.FixedColumnWidth(55),
+                8: const pw.FixedColumnWidth(65),
+              },
+              children: [
+                // Header Row 1: Group headers (9 cells, no colspan — pdf TableRow doesn't support it)
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFF2C3E50),
+                  ),
+                  children: [
+                    _pdfHeaderCell('Nama'),
+                    _pdfGroupHeaderCell('Kelas Besar'),
+                    _pdfGroupHeaderCell(''),
+                    _pdfGroupHeaderCell(''),
+                    _pdfGroupHeaderCell(''),
+                    _pdfHeaderCell('Room Qudwah'),
+                    _pdfHeaderCell('Tugas'),
+                    _pdfHeaderCell('Total'),
+                    _pdfHeaderCell('Status'),
+                  ],
+                ),
+                // Header Row 2: Sub-columns
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFF34495E),
+                  ),
+                  children: [
+                    pw.Container(), // empty under Nama
+                    _pdfSubHeaderCell('1'),
+                    _pdfSubHeaderCell('2'),
+                    _pdfSubHeaderCell('3'),
+                    _pdfSubHeaderCell('4'),
+                    pw.Container(), // empty under Room Qudwah
+                    pw.Container(), // empty under Tugas
+                    pw.Container(), // empty under Total
+                    pw.Container(), // empty under Status
+                  ],
+                ),
+                // Data rows
+                ...participants.map((p) {
+                  final scores = calculateParticipantScores(
+                    participant: p,
+                    evaluations: evals,
+                    tests: tests,
+                    attendances: attendances,
+                    uploadedFiles: uploadedFiles,
+                    resumeScores: resumeScores,
+                    testScores: testScores,
+                  );
+                  final m1 = scores['materi_Urgensi Membina'] ?? 0.0;
+                  final m2 = scores['materi_Al Qudwah Qobla Dakwah'] ?? 0.0;
+                  final m3 = scores['materi_Manajemen Mentoring Aktif'] ?? 0.0;
+                  final m4 = scores['materi_Seni Menyentuh Hati'] ?? 0.0;
+                  final rq = scores['roomQudwah'] ?? 0.0;
+                  final tg = scores['tugas'] ?? 0.0;
+                  final total = scores['total'] ?? 0.0;
+                  final status = total >= state.nilaiMin
+                      ? "LULUS"
+                      : "TIDAK LULUS";
+                  return pw.TableRow(
+                    children: [
+                      _pdfDataCell(
+                        _sanitizePdfText(Identity.displayName(p, participants)),
+                      ),
+                      _pdfDataCell(m1.toStringAsFixed(0)),
+                      _pdfDataCell(m2.toStringAsFixed(0)),
+                      _pdfDataCell(m3.toStringAsFixed(0)),
+                      _pdfDataCell(m4.toStringAsFixed(0)),
+                      _pdfDataCell(rq.toStringAsFixed(0)),
+                      _pdfDataCell(tg.toStringAsFixed(0)),
+                      _pdfDataCell(total.toStringAsFixed(1)),
+                      _pdfDataCell(status),
+                    ],
+                  );
+                }),
+              ],
+            ),
           pw.SizedBox(height: 20),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-            children: [
-              pw.Column(
-                children: [
-                  pw.Text(
-                    "Kepala Sekolah,",
-                    style: const pw.TextStyle(fontSize: 10),
+          // Signature: only Kepala Sekolah
+          pw.Center(
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  "Kepala Sekolah,",
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+                pw.SizedBox(height: kepsekSigImage != null ? 8 : 40),
+                if (kepsekSigImage != null)
+                  pw.SizedBox(
+                    height: 40,
+                    child: pw.Image(kepsekSigImage, fit: pw.BoxFit.contain),
                   ),
-                  pw.SizedBox(height: 40),
-                  pw.Text(
-                    _sanitizePdfText(config.kepalaSekolahNama),
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  _sanitizePdfText(config.kepalaSekolahNama),
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
                   ),
-                ],
-              ),
-              pw.Column(
-                children: [
+                ),
+                if (config.kepalaSekolahNim != null &&
+                    config.kepalaSekolahNim!.isNotEmpty)
                   pw.Text(
-                    "Kepala Divisi MAI,",
-                    style: const pw.TextStyle(fontSize: 10),
+                    'NIM: ${_sanitizePdfText(config.kepalaSekolahNim!)}',
+                    style: const pw.TextStyle(fontSize: 8),
                   ),
-                  pw.SizedBox(height: 40),
-                  pw.Text(
-                    _sanitizePdfText(config.kadivNama ?? "Kadiv MAI"),
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

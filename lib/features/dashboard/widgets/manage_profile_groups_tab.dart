@@ -14,10 +14,12 @@ class ManageProfileAndGroupsTab extends ConsumerStatefulWidget {
   const ManageProfileAndGroupsTab({super.key, required this.config});
 
   @override
-  ConsumerState<ManageProfileAndGroupsTab> createState() => _ManageProfileAndGroupsTabState();
+  ConsumerState<ManageProfileAndGroupsTab> createState() =>
+      _ManageProfileAndGroupsTabState();
 }
 
-class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGroupsTab> {
+class _ManageProfileAndGroupsTabState
+    extends ConsumerState<ManageProfileAndGroupsTab> {
   final _newTeacherController = TextEditingController();
   final _newParticipantController = TextEditingController();
   final _kadivController = TextEditingController();
@@ -78,7 +80,9 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
           identitiesAsync.when(
             data: (idents) {
               final kepsekId = idents.firstWhere(
-                (id) => id.name.toLowerCase() == widget.config.kepalaSekolahNama.toLowerCase(),
+                (id) =>
+                    id.name.toLowerCase() ==
+                    widget.config.kepalaSekolahNama.toLowerCase(),
                 orElse: () => Identity(name: widget.config.kepalaSekolahNama),
               );
 
@@ -94,7 +98,10 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.admin_panel_settings, color: Colors.tealAccent),
+                          Icon(
+                            Icons.admin_panel_settings,
+                            color: Colors.tealAccent,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             "Kelola Profil Kepala Sekolah",
@@ -109,9 +116,19 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                       const SizedBox(height: 20),
                       Row(
                         children: [
-                          Expanded(child: _buildReadOnlyField("Nama Kepala Sekolah", kepsekId.name)),
+                          Expanded(
+                            child: _buildReadOnlyField(
+                              "Nama Kepala Sekolah",
+                              kepsekId.name,
+                            ),
+                          ),
                           const SizedBox(width: 16),
-                          Expanded(child: _buildReadOnlyField("Tahun Kepengurusan", widget.config.kepengurusanTahun)),
+                          Expanded(
+                            child: _buildReadOnlyField(
+                              "Tahun Kepengurusan",
+                              widget.config.kepengurusanTahun,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -124,7 +141,10 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                               decoration: const InputDecoration(
                                 labelText: "Nomor WhatsApp",
                                 labelStyle: TextStyle(color: Colors.white70),
-                                prefixIcon: Icon(Icons.phone, color: Colors.tealAccent),
+                                prefixIcon: Icon(
+                                  Icons.phone,
+                                  color: Colors.tealAccent,
+                                ),
                               ),
                               onChanged: (val) async {
                                 final updatedId = Identity(
@@ -133,7 +153,8 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                   whatsapp: val.trim(),
                                   signatureVector: kepsekId.signatureVector,
                                   faceVector: kepsekId.faceVector,
-                                  allowSignatureReset: kepsekId.allowSignatureReset,
+                                  allowSignatureReset:
+                                      kepsekId.allowSignatureReset,
                                 );
                                 await firebaseService.saveIdentity(updatedId);
                               },
@@ -141,10 +162,62 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                           ),
                           const SizedBox(width: 16),
                           Expanded(
+                            child: TextFormField(
+                              initialValue:
+                                  widget.config.kepalaSekolahNim ?? '',
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                labelText: "NIM Kepala Sekolah",
+                                labelStyle: TextStyle(color: Colors.white70),
+                                prefixIcon: Icon(
+                                  Icons.badge,
+                                  color: Colors.tealAccent,
+                                ),
+                              ),
+                              onChanged: (val) async {
+                                final updatedConfig = AppConfig(
+                                  activeMode: widget.config.activeMode,
+                                  kepalaSekolahNama:
+                                      widget.config.kepalaSekolahNama,
+                                  kepengurusanTahun:
+                                      widget.config.kepengurusanTahun,
+                                  bobotKelasBesar:
+                                      widget.config.bobotKelasBesar,
+                                  bobotRoomQudwah:
+                                      widget.config.bobotRoomQudwah,
+                                  bobotTugas: widget.config.bobotTugas,
+                                  nilaiMinimum: widget.config.nilaiMinimum,
+                                  kepsekSignatureBase64:
+                                      widget.config.kepsekSignatureBase64,
+                                  kadivNama: widget.config.kadivNama,
+                                  kadivSignatureBase64:
+                                      widget.config.kadivSignatureBase64,
+                                  activeMateri: widget.config.activeMateri,
+                                  rekapSigned: widget.config.rekapSigned,
+                                  kepalaSekolahNim: val.trim().isEmpty
+                                      ? null
+                                      : val.trim(),
+                                );
+                                await firebaseService.saveConfig(updatedConfig);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("Jenis Kelamin", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                const Text(
+                                  "Jenis Kelamin",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
                                 Wrap(
                                   spacing: 8,
@@ -156,18 +229,24 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                       selectedColor: Colors.tealAccent,
                                       checkmarkColor: Colors.black,
                                       labelStyle: TextStyle(
-                                        color: kepsekId.gender == 'ikhwan' ? Colors.black : Colors.white,
+                                        color: kepsekId.gender == 'ikhwan'
+                                            ? Colors.black
+                                            : Colors.white,
                                       ),
                                       onSelected: (selected) async {
                                         final updatedId = Identity(
                                           name: kepsekId.name,
                                           gender: 'ikhwan',
                                           whatsapp: kepsekId.whatsapp,
-                                          signatureVector: kepsekId.signatureVector,
+                                          signatureVector:
+                                              kepsekId.signatureVector,
                                           faceVector: kepsekId.faceVector,
-                                          allowSignatureReset: kepsekId.allowSignatureReset,
+                                          allowSignatureReset:
+                                              kepsekId.allowSignatureReset,
                                         );
-                                        await firebaseService.saveIdentity(updatedId);
+                                        await firebaseService.saveIdentity(
+                                          updatedId,
+                                        );
                                       },
                                     ),
                                     ChoiceChip(
@@ -176,18 +255,24 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                       selectedColor: Colors.tealAccent,
                                       checkmarkColor: Colors.black,
                                       labelStyle: TextStyle(
-                                        color: kepsekId.gender == 'akhwat' ? Colors.black : Colors.white,
+                                        color: kepsekId.gender == 'akhwat'
+                                            ? Colors.black
+                                            : Colors.white,
                                       ),
                                       onSelected: (selected) async {
                                         final updatedId = Identity(
                                           name: kepsekId.name,
                                           gender: 'akhwat',
                                           whatsapp: kepsekId.whatsapp,
-                                          signatureVector: kepsekId.signatureVector,
+                                          signatureVector:
+                                              kepsekId.signatureVector,
                                           faceVector: kepsekId.faceVector,
-                                          allowSignatureReset: kepsekId.allowSignatureReset,
+                                          allowSignatureReset:
+                                              kepsekId.allowSignatureReset,
                                         );
-                                        await firebaseService.saveIdentity(updatedId);
+                                        await firebaseService.saveIdentity(
+                                          updatedId,
+                                        );
                                       },
                                     ),
                                   ],
@@ -201,17 +286,28 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                       Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text("Status Pemindaian Wajah: ", style: TextStyle(color: Colors.white70)),
+                          const Text(
+                            "Status Pemindaian Wajah: ",
+                            style: TextStyle(color: Colors.white70),
+                          ),
                           const SizedBox(width: 8),
                           Icon(
-                            kepsekId.faceVector != null ? Icons.check_circle : Icons.error_outline,
-                            color: kepsekId.faceVector != null ? Colors.tealAccent : Colors.redAccent,
+                            kepsekId.faceVector != null
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            color: kepsekId.faceVector != null
+                                ? Colors.tealAccent
+                                : Colors.redAccent,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            kepsekId.faceVector != null ? "Vektor Wajah Aktif" : "Belum Dipindai",
+                            kepsekId.faceVector != null
+                                ? "Vektor Wajah Aktif"
+                                : "Belum Dipindai",
                             style: TextStyle(
-                              color: kepsekId.faceVector != null ? Colors.tealAccent : Colors.redAccent,
+                              color: kepsekId.faceVector != null
+                                  ? Colors.tealAccent
+                                  : Colors.redAccent,
                             ),
                           ),
                         ],
@@ -239,7 +335,10 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.admin_panel_settings, color: Colors.tealAccent),
+                      Icon(
+                        Icons.admin_panel_settings,
+                        color: Colors.tealAccent,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         "Kelola Profil Kepala Divisi MAI",
@@ -260,9 +359,13 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                     decoration: InputDecoration(
                       labelText: "Nama Kepala Divisi MAI",
                       labelStyle: const TextStyle(color: Colors.white70),
-                      hintText: widget.config.kadivNama ?? "Masukkan nama Kadiv...",
+                      hintText:
+                          widget.config.kadivNama ?? "Masukkan nama Kadiv...",
                       hintStyle: const TextStyle(color: Colors.white30),
-                      prefixIcon: const Icon(Icons.person, color: Colors.tealAccent),
+                      prefixIcon: const Icon(
+                        Icons.person,
+                        color: Colors.tealAccent,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -280,10 +383,12 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                           bobotRoomQudwah: widget.config.bobotRoomQudwah,
                           bobotTugas: widget.config.bobotTugas,
                           nilaiMinimum: widget.config.nilaiMinimum,
-                          kepsekSignatureBase64: widget.config.kepsekSignatureBase64,
+                          kepsekSignatureBase64:
+                              widget.config.kepsekSignatureBase64,
                           kadivNama: widget.config.kadivNama,
                           kadivSignatureBase64: null,
                           activeMateri: widget.config.activeMateri,
+                          kepalaSekolahNim: widget.config.kepalaSekolahNim,
                         ),
                       );
                     },
@@ -300,7 +405,11 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                       final kadivName = _kadivController.text.trim();
                       if (kadivName.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Harap masukkan nama Kepala Divisi MAI!')),
+                          const SnackBar(
+                            content: Text(
+                              'Harap masukkan nama Kepala Divisi MAI!',
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -309,7 +418,8 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                       if (_kadivSigController.value.isNotEmpty) {
                         final sigBytes = await _kadivSigController.toPngBytes();
                         if (sigBytes != null) {
-                          kadivSigBase64 = 'data:image/png;base64,${base64Encode(sigBytes)}';
+                          kadivSigBase64 =
+                              'data:image/png;base64,${base64Encode(sigBytes)}';
                         }
                       }
 
@@ -322,18 +432,26 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                           bobotRoomQudwah: widget.config.bobotRoomQudwah,
                           bobotTugas: widget.config.bobotTugas,
                           nilaiMinimum: widget.config.nilaiMinimum,
-                          kepsekSignatureBase64: widget.config.kepsekSignatureBase64,
+                          kepsekSignatureBase64:
+                              widget.config.kepsekSignatureBase64,
                           kadivNama: kadivName,
                           kadivSignatureBase64: kadivSigBase64,
                           activeMateri: widget.config.activeMateri,
+                          kepalaSekolahNim: widget.config.kepalaSekolahNim,
                         ),
                       );
 
-                      await firebaseService.saveIdentity(Identity(name: kadivName));
+                      await firebaseService.saveIdentity(
+                        Identity(name: kadivName),
+                      );
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Profil Kepala Divisi MAI berhasil disimpan!')),
+                          const SnackBar(
+                            content: Text(
+                              'Profil Kepala Divisi MAI berhasil disimpan!',
+                            ),
+                          ),
                         );
                       }
                     },
@@ -377,7 +495,9 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                 controller: _newTeacherController,
                                 style: const TextStyle(color: Colors.white),
                                 textCapitalization: TextCapitalization.words,
-                                inputFormatters: [TitleCaseTextInputFormatter()],
+                                inputFormatters: [
+                                  TitleCaseTextInputFormatter(),
+                                ],
                                 decoration: const InputDecoration(
                                   hintText: "Nama Guru/Walikelas...",
                                   hintStyle: TextStyle(color: Colors.white30),
@@ -392,14 +512,25 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                 icon: const Icon(Icons.add),
                                 label: const Text("TAMBAH KELOMPOK"),
                                 onPressed: () async {
-                                  final name = _newTeacherController.text.trim();
+                                  final name = _newTeacherController.text
+                                      .trim();
                                   if (name.isNotEmpty) {
-                                    final messenger = ScaffoldMessenger.of(context);
-                                    await firebaseService.saveGroup(Group(walikelas: name, participants: []));
-                                    await firebaseService.saveIdentity(Identity(name: name, gender: 'ikhwan'));
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    await firebaseService.saveGroup(
+                                      Group(walikelas: name, participants: []),
+                                    );
+                                    await firebaseService.saveIdentity(
+                                      Identity(name: name, gender: 'ikhwan'),
+                                    );
                                     _newTeacherController.clear();
                                     messenger.showSnackBar(
-                                      SnackBar(content: Text('Kelompok Walikelas $name berhasil ditambahkan!')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Kelompok Walikelas $name berhasil ditambahkan!',
+                                        ),
+                                      ),
                                     );
                                   }
                                 },
@@ -432,7 +563,9 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                 controller: _newParticipantController,
                                 style: const TextStyle(color: Colors.white),
                                 textCapitalization: TextCapitalization.words,
-                                inputFormatters: [TitleCaseTextInputFormatter()],
+                                inputFormatters: [
+                                  TitleCaseTextInputFormatter(),
+                                ],
                                 decoration: const InputDecoration(
                                   hintText: "Nama Peserta Baru...",
                                   hintStyle: TextStyle(color: Colors.white30),
@@ -441,7 +574,13 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                               const SizedBox(height: 12),
                               DropdownButtonFormField<String>(
                                 dropdownColor: const Color(0xFF1E293B),
-                                initialValue: groups.any((g) => g.walikelas == state.selectedTeacherForNewParticipant)
+                                initialValue:
+                                    groups.any(
+                                      (g) =>
+                                          g.walikelas ==
+                                          state
+                                              .selectedTeacherForNewParticipant,
+                                    )
                                     ? state.selectedTeacherForNewParticipant
                                     : null,
                                 style: const TextStyle(color: Colors.white),
@@ -450,9 +589,13 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                   labelStyle: TextStyle(color: Colors.white70),
                                 ),
                                 items: groups.map((g) {
-                                  return DropdownMenuItem(value: g.walikelas, child: Text(g.walikelas));
+                                  return DropdownMenuItem(
+                                    value: g.walikelas,
+                                    child: Text(g.walikelas),
+                                  );
                                 }).toList(),
-                                onChanged: controller.selectTeacherForNewParticipant,
+                                onChanged:
+                                    controller.selectTeacherForNewParticipant,
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
@@ -463,33 +606,58 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                 icon: const Icon(Icons.person_add),
                                 label: const Text("TAMBAH PESERTA"),
                                 onPressed: () async {
-                                  final pName = _newParticipantController.text.trim();
-                                  final wName = state.selectedTeacherForNewParticipant;
+                                  final pName = _newParticipantController.text
+                                      .trim();
+                                  final wName =
+                                      state.selectedTeacherForNewParticipant;
                                   if (pName.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Harap masukkan nama peserta!')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Harap masukkan nama peserta!',
+                                        ),
+                                      ),
                                     );
                                     return;
                                   }
                                   if (wName == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Harap pilih Walikelas!')),
+                                      const SnackBar(
+                                        content: Text('Harap pilih Walikelas!'),
+                                      ),
                                     );
                                     return;
                                   }
 
-                                  final targetGroup = groups.firstWhere((g) => g.walikelas == wName);
-                                  final updatedParticipants = List<String>.from(targetGroup.participants);
-                                  final messenger = ScaffoldMessenger.of(context);
+                                  final targetGroup = groups.firstWhere(
+                                    (g) => g.walikelas == wName,
+                                  );
+                                  final updatedParticipants = List<String>.from(
+                                    targetGroup.participants,
+                                  );
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
                                   if (!updatedParticipants.contains(pName)) {
                                     updatedParticipants.add(pName);
-                                    await firebaseService.saveGroup(Group(walikelas: wName, participants: updatedParticipants));
-                                    await firebaseService.saveIdentity(Identity(name: pName));
+                                    await firebaseService.saveGroup(
+                                      Group(
+                                        walikelas: wName,
+                                        participants: updatedParticipants,
+                                      ),
+                                    );
+                                    await firebaseService.saveIdentity(
+                                      Identity(name: pName),
+                                    );
                                   }
 
                                   _newParticipantController.clear();
                                   messenger.showSnackBar(
-                                    SnackBar(content: Text('Peserta $pName dimasukkan ke kelompok $wName!')),
+                                    SnackBar(
+                                      content: Text(
+                                        'Peserta $pName dimasukkan ke kelompok $wName!',
+                                      ),
+                                    ),
                                   );
                                 },
                               ),
@@ -545,12 +713,16 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.school, color: Colors.tealAccent),
+                                        const Icon(
+                                          Icons.school,
+                                          color: Colors.tealAccent,
+                                        ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
@@ -567,32 +739,54 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.redAccent,
+                                    ),
                                     onPressed: () async {
                                       final confirm = await showDialog<bool>(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text("Hapus Kelompok?"),
-                                          content: Text("Apakah Anda yakin ingin menghapus kelompok Walikelas ${group.walikelas}?"),
+                                          content: Text(
+                                            "Apakah Anda yakin ingin menghapus kelompok Walikelas ${group.walikelas}?",
+                                          ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.pop(ctx, false),
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
                                               child: const Text("Batal"),
                                             ),
                                             TextButton(
-                                              onPressed: () => Navigator.pop(ctx, true),
-                                              child: const Text("Hapus", style: TextStyle(color: Colors.redAccent)),
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: const Text(
+                                                "Hapus",
+                                                style: TextStyle(
+                                                  color: Colors.redAccent,
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
                                       );
 
                                       if (confirm == true) {
-                                        await firebaseService.deleteGroup(group.walikelas);
-                                        await firebaseService.deleteIdentity(group.walikelas);
+                                        await firebaseService.deleteGroup(
+                                          group.walikelas,
+                                        );
+                                        await firebaseService.deleteIdentity(
+                                          group.walikelas,
+                                        );
                                         if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Kelompok ${group.walikelas} berhasil dihapus!')),
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Kelompok ${group.walikelas} berhasil dihapus!',
+                                              ),
+                                            ),
                                           );
                                         }
                                       }
@@ -604,8 +798,15 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                               group.participants.isEmpty
                                   ? const Center(
                                       child: Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 24),
-                                        child: Text("Belum ada peserta", style: TextStyle(color: Colors.white38)),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 24,
+                                        ),
+                                        child: Text(
+                                          "Belum ada peserta",
+                                          style: TextStyle(
+                                            color: Colors.white38,
+                                          ),
+                                        ),
                                       ),
                                     )
                                   : Wrap(
@@ -613,16 +814,43 @@ class _ManageProfileAndGroupsTabState extends ConsumerState<ManageProfileAndGrou
                                       runSpacing: 8,
                                       children: group.participants.map((pName) {
                                         return Chip(
-                                          label: Text(pName, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                                          deleteIcon: const Icon(Icons.close, size: 14, color: Colors.redAccent),
+                                          label: Text(
+                                            pName,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          backgroundColor: Colors.white
+                                              .withValues(alpha: 0.05),
+                                          deleteIcon: const Icon(
+                                            Icons.close,
+                                            size: 14,
+                                            color: Colors.redAccent,
+                                          ),
                                           onDeleted: () async {
-                                            final updatedParticipants = List<String>.from(group.participants)..remove(pName);
-                                            await firebaseService.saveGroup(Group(walikelas: group.walikelas, participants: updatedParticipants));
-                                            await firebaseService.deleteIdentity(pName);
+                                            final updatedParticipants =
+                                                List<String>.from(
+                                                  group.participants,
+                                                )..remove(pName);
+                                            await firebaseService.saveGroup(
+                                              Group(
+                                                walikelas: group.walikelas,
+                                                participants:
+                                                    updatedParticipants,
+                                              ),
+                                            );
+                                            await firebaseService
+                                                .deleteIdentity(pName);
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Peserta $pName dikeluarkan dari kelompok!')),
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Peserta $pName dikeluarkan dari kelompok!',
+                                                  ),
+                                                ),
                                               );
                                             }
                                           },

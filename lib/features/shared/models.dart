@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Identity {
   final String name;
+  final String? nim; // Nomor Induk Mahasiswa
   final String? signatureVector; // base64 or coordinate points representation
   final String? murobbi;
   final String? whatsapp;
@@ -11,6 +12,7 @@ class Identity {
 
   Identity({
     required this.name,
+    this.nim,
     this.signatureVector,
     this.murobbi,
     this.whatsapp,
@@ -22,6 +24,7 @@ class Identity {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'nim': nim,
       'signatureVector': signatureVector,
       'murobbi': murobbi,
       'whatsapp': whatsapp,
@@ -34,6 +37,7 @@ class Identity {
   factory Identity.fromMap(Map<String, dynamic> map) {
     return Identity(
       name: map['name'] ?? '',
+      nim: map['nim'],
       signatureVector: map['signatureVector'],
       murobbi: map['murobbi'],
       whatsapp: map['whatsapp'],
@@ -41,6 +45,18 @@ class Identity {
       faceVector: map['faceVector'],
       allowSignatureReset: map['allowSignatureReset'] ?? false,
     );
+  }
+
+  /// Returns the display name, appending NIM in parentheses if there are
+  /// other identities with the same name in [allIdentities].
+  static String displayName(Identity identity, List<Identity> allIdentities) {
+    final duplicates = allIdentities.where((i) => i.name == identity.name);
+    if (duplicates.length > 1 &&
+        identity.nim != null &&
+        identity.nim!.isNotEmpty) {
+      return '${identity.name} (${identity.nim})';
+    }
+    return identity.name;
   }
 }
 
@@ -228,6 +244,7 @@ class AppConfig {
   final String? kadivSignatureBase64;
   final String activeMateri;
   final bool rekapSigned;
+  final String? kepalaSekolahNim;
 
   AppConfig({
     required this.activeMode,
@@ -242,6 +259,7 @@ class AppConfig {
     this.kadivSignatureBase64,
     this.activeMateri = '',
     this.rekapSigned = false,
+    this.kepalaSekolahNim,
   });
 
   Map<String, dynamic> toMap() {
@@ -258,6 +276,7 @@ class AppConfig {
       'kadivSignatureBase64': kadivSignatureBase64,
       'activeMateri': activeMateri,
       'rekapSigned': rekapSigned,
+      'kepalaSekolahNim': kepalaSekolahNim,
     };
   }
 
@@ -275,6 +294,7 @@ class AppConfig {
       kadivSignatureBase64: map['kadivSignatureBase64'],
       activeMateri: map['activeMateri'] ?? '',
       rekapSigned: map['rekapSigned'] ?? false,
+      kepalaSekolahNim: map['kepalaSekolahNim'],
     );
   }
 }

@@ -195,7 +195,10 @@ class _PretestPosttestInputTabState
                                         maxWidth: 160,
                                       ),
                                       child: Text(
-                                        p.name,
+                                        Identity.displayName(
+                                          p,
+                                          participantsOnly,
+                                        ),
                                         style: const TextStyle(
                                           color: Colors.white70,
                                         ),

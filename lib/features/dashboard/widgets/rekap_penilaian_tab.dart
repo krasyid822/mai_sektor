@@ -216,7 +216,10 @@ class RekapPenilaianTab extends ConsumerWidget {
 
               return TableRow(
                 children: [
-                  _dataCell(p.name, maxWidth: 160),
+                  _dataCell(
+                    Identity.displayName(p, participants),
+                    maxWidth: 160,
+                  ),
                   _materiCell(m1),
                   _materiCell(m2),
                   _materiCell(m3),
@@ -582,8 +585,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                             ),
                             onPressed: () {
                               controller.downloadRekapPDF(
-                                ikhwans: ikhwans,
-                                akhwats: akhwats,
+                                participants: participantsOnly,
                                 evals: evaluations,
                                 tests: tests,
                                 config: config,

@@ -25,7 +25,11 @@ class CertificateTab extends ConsumerWidget {
         .replaceAll('—', '-');
   }
 
-  Future<void> _generateCertificatePDF(WidgetRef ref, Identity participant) async {
+  Future<void> _generateCertificatePDF(
+    WidgetRef ref,
+    Identity participant,
+    List<Identity> allParticipants,
+  ) async {
     final pdf = pw.Document();
 
     pw.MemoryImage? headerImage;
@@ -128,7 +132,9 @@ class CertificateTab extends ConsumerWidget {
                     ),
                     pw.SizedBox(height: 6),
                     pw.Text(
-                      _sanitizePdfText(participant.name),
+                      _sanitizePdfText(
+                        Identity.displayName(participant, allParticipants),
+                      ),
                       style: pw.TextStyle(
                         fontSize: 22,
                         fontWeight: pw.FontWeight.bold,
@@ -136,7 +142,9 @@ class CertificateTab extends ConsumerWidget {
                     ),
                     pw.SizedBox(height: 4),
                     pw.Text(
-                      _sanitizePdfText("Telah dinyatakan LULUS dalam program MAI Sektor kepengurusan ${config.kepengurusanTahun}."),
+                      _sanitizePdfText(
+                        "Telah dinyatakan LULUS dalam program MAI Sektor kepengurusan ${config.kepengurusanTahun}.",
+                      ),
                       textAlign: pw.TextAlign.center,
                       style: const pw.TextStyle(fontSize: 12),
                     ),
@@ -147,7 +155,10 @@ class CertificateTab extends ConsumerWidget {
                   children: [
                     pw.Column(
                       children: [
-                        pw.Text("Kepala Sekolah,", style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          "Kepala Sekolah,",
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         pw.SizedBox(height: 4),
                         if (kepsekSigImage != null)
                           pw.Container(
@@ -158,13 +169,19 @@ class CertificateTab extends ConsumerWidget {
                         pw.SizedBox(height: 4),
                         pw.Text(
                           _sanitizePdfText(config.kepalaSekolahNama),
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
                     pw.Column(
                       children: [
-                        pw.Text("Wali Kelas,", style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          "Wali Kelas,",
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         pw.SizedBox(height: 4),
                         if (walikelasSigImage != null)
                           pw.Container(
@@ -174,14 +191,22 @@ class CertificateTab extends ConsumerWidget {
                           ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          _sanitizePdfText(participantGroup?.walikelas ?? "Wali Kelas"),
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          _sanitizePdfText(
+                            participantGroup?.walikelas ?? "Wali Kelas",
+                          ),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
                     pw.Column(
                       children: [
-                        pw.Text("Kepala Divisi MAI,", style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          "Kepala Divisi MAI,",
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         pw.SizedBox(height: 4),
                         if (kadivSigImage != null)
                           pw.Container(
@@ -192,7 +217,10 @@ class CertificateTab extends ConsumerWidget {
                         pw.SizedBox(height: 4),
                         pw.Text(
                           _sanitizePdfText(config.kadivNama ?? "Kadiv MAI"),
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -226,7 +254,11 @@ class CertificateTab extends ConsumerWidget {
               SizedBox(height: 24),
               Text(
                 "Sertifikat Belum Diterbitkan",
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 12),
               Text(
@@ -307,24 +339,38 @@ class CertificateTab extends ConsumerWidget {
                     orElse: () => null,
                   );
 
-                  final hasKepsek = config.kepsekSignatureBase64 != null && config.kepsekSignatureBase64!.isNotEmpty;
-                  final hasWalikelas = participantGroup?.walikelasSignatureBase64 != null && participantGroup!.walikelasSignatureBase64!.isNotEmpty;
-                  final hasKadiv = config.kadivSignatureBase64 != null && config.kadivSignatureBase64!.isNotEmpty;
+                  final hasKepsek =
+                      config.kepsekSignatureBase64 != null &&
+                      config.kepsekSignatureBase64!.isNotEmpty;
+                  final hasWalikelas =
+                      participantGroup?.walikelasSignatureBase64 != null &&
+                      participantGroup!.walikelasSignatureBase64!.isNotEmpty;
+                  final hasKadiv =
+                      config.kadivSignatureBase64 != null &&
+                      config.kadivSignatureBase64!.isNotEmpty;
                   final allSigned = hasKepsek && hasWalikelas && hasKadiv;
 
                   return ListTile(
                     title: Text(
-                      id.name,
+                      Identity.displayName(id, participantsOnly),
                       style: const TextStyle(color: Colors.white),
                     ),
                     subtitle: Text(
                       "Status Ttd: (Kepsek: ${hasKepsek ? '✓' : '✗'}, Walikelas: ${hasWalikelas ? '✓' : '✗'}, Kadiv: ${hasKadiv ? '✓' : '✗'})",
-                      style: TextStyle(color: allSigned ? Colors.tealAccent : Colors.white60),
+                      style: TextStyle(
+                        color: allSigned ? Colors.tealAccent : Colors.white60,
+                      ),
                     ),
                     trailing: ElevatedButton.icon(
                       icon: Icon(allSigned ? Icons.download : Icons.lock),
                       label: const Text("Unduh Sertifikat (PDF)"),
-                      onPressed: allSigned ? () => _generateCertificatePDF(ref, id) : null,
+                      onPressed: allSigned
+                          ? () => _generateCertificatePDF(
+                              ref,
+                              id,
+                              participantsOnly,
+                            )
+                          : null,
                     ),
                   );
                 },
