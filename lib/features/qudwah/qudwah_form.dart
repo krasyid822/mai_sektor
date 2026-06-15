@@ -70,6 +70,9 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
     if (widget.initialWalikelas != null) {
       _walikelasController.text = widget.initialWalikelas!;
     }
+    _walikelasController.addListener(() {
+      if (mounted) setState(() {});
+    });
     // Initialize default scores
     for (final criterion in _criteria) {
       _scores[criterion] = 80;
@@ -193,20 +196,43 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
                   ),
                   const SizedBox(height: 16),
 
-                  identitiesAsync.when(
-                    data: (idents) {
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final groups = ref.watch(groupsStreamProvider).value ?? [];
+                      final currentWalikelas = _walikelasController.text.trim().toLowerCase();
+                      final myGroup = groups.firstWhere(
+                        (g) => g.walikelas.toLowerCase() == currentWalikelas,
+                        orElse: () => Group(walikelas: '', participants: []),
+                      );
+                      final myParticipants = List<String>.from(myGroup.participants)..sort();
+
+                      if (myParticipants.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            "Belum ada peserta terdaftar untuk Wali Kelas ini.",
+                            style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                          ),
+                        );
+                      }
+
                       return DropdownButtonFormField<String>(
                         dropdownColor: const Color(0xFF1E293B),
-                        initialValue: _selectedPeserta,
+                        value: (dynamic val) {
+                          if (_selectedPeserta != null && myParticipants.contains(_selectedPeserta)) {
+                            return _selectedPeserta;
+                          }
+                          return null;
+                        }(),
                         style: const TextStyle(color: Colors.white),
                         decoration: const InputDecoration(
                           labelText: 'Nama Peserta',
                           labelStyle: TextStyle(color: Colors.white70),
                         ),
-                        items: idents.map((i) {
+                        items: myParticipants.map((name) {
                           return DropdownMenuItem(
-                            value: i.name,
-                            child: Text(i.name),
+                            value: name,
+                            child: Text(name),
                           );
                         }).toList(),
                         onChanged: (val) =>
@@ -215,8 +241,6 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
                             val == null ? 'Wajib memilih peserta' : null,
                       );
                     },
-                    loading: () => const CircularProgressIndicator(),
-                    error: (e, _) => Text("Error: $e"),
                   ),
                   const SizedBox(height: 16),
 
