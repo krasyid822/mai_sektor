@@ -248,6 +248,7 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           dropdownColor: const Color(0xFF1E293B),
+                          isExpanded: true,
                           initialValue: _selectedMateri,
                           style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
@@ -255,7 +256,13 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
                             labelStyle: TextStyle(color: Colors.white70),
                           ),
                           items: _syllabus.map((m) {
-                            return DropdownMenuItem(value: m, child: Text(m));
+                            return DropdownMenuItem(
+                              value: m,
+                              child: Text(
+                                m,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
                           }).toList(),
                           onChanged: (val) =>
                               setState(() => _selectedMateri = val),
