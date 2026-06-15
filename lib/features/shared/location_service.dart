@@ -49,7 +49,11 @@ class LocationService {
   /// Get user's current coordinates.
   static Future<Position> getCurrentLocation() async {
     if (kIsWeb) {
-      final geoposition = await html.window.navigator.geolocation.getCurrentPosition(
+      final dynamic geolocation = html.window.navigator.geolocation;
+      if (geolocation == null) {
+        throw 'Geolocation is not supported or not available (HTTPS/Secure Context required)';
+      }
+      final geoposition = await geolocation.getCurrentPosition(
         enableHighAccuracy: true,
       );
       final coords = geoposition.coords;

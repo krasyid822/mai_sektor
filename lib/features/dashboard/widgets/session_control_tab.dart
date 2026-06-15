@@ -14,55 +14,6 @@ class SessionControlTab extends ConsumerStatefulWidget {
 }
 
 class _SessionControlTabState extends ConsumerState<SessionControlTab> {
-  double? _currentSliderValue = 1.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentSliderValue = _getMateriValue(widget.config.activeMateri);
-  }
-
-  @override
-  void didUpdateWidget(covariant SessionControlTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.config.activeMateri != widget.config.activeMateri) {
-      setState(() {
-        _currentSliderValue = _getMateriValue(widget.config.activeMateri);
-      });
-    }
-  }
-
-  double _getMateriValue(String? materi) {
-    if (materi == null) return 1.0;
-    switch (materi) {
-      case 'Urgensi Membina':
-        return 1.0;
-      case 'Al Qudwah Qobla Dakwah':
-        return 2.0;
-      case 'Manajemen Mentoring Aktif':
-        return 3.0;
-      case 'Seni Menyentuh Hati':
-        return 4.0;
-      default:
-        return 1.0;
-    }
-  }
-
-  String _getMateriName(int value) {
-    switch (value) {
-      case 1:
-        return 'Urgensi Membina';
-      case 2:
-        return 'Al Qudwah Qobla Dakwah';
-      case 3:
-        return 'Manajemen Mentoring Aktif';
-      case 4:
-        return 'Seni Menyentuh Hati';
-      default:
-        return '';
-    }
-  }
-
   String _getMateriNumber(String materi) {
     switch (materi) {
       case 'Urgensi Membina':
@@ -123,7 +74,6 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
     final config = widget.config;
     final state = ref.watch(dashboardControllerProvider);
     final controller = ref.read(dashboardControllerProvider.notifier);
-    final sliderVal = _currentSliderValue ?? 1.0;
 
     final groups = ref.watch(groupsStreamProvider).value ?? [];
     final participantNames = groups.expand((g) => g.participants).toList()
@@ -287,75 +237,61 @@ class _SessionControlTabState extends ConsumerState<SessionControlTab> {
                   .toList(),
             ),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Pilih Sesi Materi Kelas Besar:",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  "${sliderVal.round()}",
-                  style: const TextStyle(
-                    color: Colors.tealAccent,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+            const Text(
+              "Pilih Sesi Materi Kelas Besar:",
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
-            const SizedBox(height: 8),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: Colors.tealAccent,
-                inactiveTrackColor: Colors.white24,
-                thumbColor: Colors.tealAccent,
-                overlayColor: Colors.tealAccent.withValues(alpha: 0.2),
-                valueIndicatorColor: Colors.teal,
-                valueIndicatorTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              child: Slider(
-                value: sliderVal,
-                min: 1.0,
-                max: 4.0,
-                divisions: 3,
-                label: "Sesi ${sliderVal.round()}",
-                onChanged: (val) {
-                  setState(() {
-                    _currentSliderValue = val;
-                  });
-                },
-                onChangeEnd: (val) async {
-                  final newMateri = _getMateriName(val.round());
-                  await ref
-                      .read(firebaseServiceProvider)
-                      .saveConfig(
-                        AppConfig(
-                          activeMode: config.activeMode,
-                          kepalaSekolahNama: config.kepalaSekolahNama,
-                          kepengurusanTahun: config.kepengurusanTahun,
-                          bobotKelasBesar: config.bobotKelasBesar,
-                          bobotRoomQudwah: config.bobotRoomQudwah,
-                          bobotTugas: config.bobotTugas,
-                          nilaiMinimum: config.nilaiMinimum,
-                          kepsekSignatureBase64: config.kepsekSignatureBase64,
-                          kadivNama: config.kadivNama,
-                          kadivSignatureBase64: config.kadivSignatureBase64,
-                          activeMateri: newMateri,
-                          kepalaSekolahNim: config.kepalaSekolahNim,
-                          kadivNim: config.kadivNim,
-                          kadivIsKepsek: config.kadivIsKepsek,
-                        ),
-                      );
-                },
-              ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                'Urgensi Membina',
+                'Al Qudwah Qobla Dakwah',
+                'Manajemen Mentoring Aktif',
+                'Seni Menyentuh Hati',
+              ].map((materi) {
+                final isSelected = config.activeMateri == materi;
+                final index = _getMateriNumber(materi);
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSelected
+                        ? Colors.amberAccent
+                        : Colors.white10,
+                    foregroundColor: isSelected ? Colors.black : Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () async {
+                    await ref
+                        .read(firebaseServiceProvider)
+                        .saveConfig(
+                          AppConfig(
+                            activeMode: config.activeMode,
+                            kepalaSekolahNama: config.kepalaSekolahNama,
+                            kepengurusanTahun: config.kepengurusanTahun,
+                            bobotKelasBesar: config.bobotKelasBesar,
+                            bobotRoomQudwah: config.bobotRoomQudwah,
+                            bobotTugas: config.bobotTugas,
+                            nilaiMinimum: config.nilaiMinimum,
+                            kepsekSignatureBase64: config.kepsekSignatureBase64,
+                            kadivNama: config.kadivNama,
+                            kadivSignatureBase64: config.kadivSignatureBase64,
+                            activeMateri: materi,
+                            kepalaSekolahNim: config.kepalaSekolahNim,
+                            kadivNim: config.kadivNim,
+                            kadivIsKepsek: config.kadivIsKepsek,
+                          ),
+                        );
+                  },
+                  child: Text(index),
+                );
+              }).toList(),
             ),
           ],
         ),

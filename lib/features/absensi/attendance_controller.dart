@@ -10,7 +10,7 @@ import '../shared/signature_helper.dart';
 
 class AttendanceState {
   final String? selectedName;
-  final String gender;
+  final String? gender;
   final String role;
   final CameraController? cameraController;
   final bool isCameraInitialized;
@@ -20,9 +20,10 @@ class AttendanceState {
   final bool isSubmitting;
   final String murobbi;
   final String whatsapp;
+  final String nim;
   AttendanceState({
     this.selectedName,
-    this.gender = 'ikhwan',
+    this.gender,
     this.role = 'peserta',
     this.cameraController,
     this.isCameraInitialized = false,
@@ -32,11 +33,12 @@ class AttendanceState {
     this.isSubmitting = false,
     this.murobbi = '',
     this.whatsapp = '',
+    this.nim = '',
   });
 
   AttendanceState copyWith({
     String? Function()? selectedName,
-    String? gender,
+    String? Function()? gender,
     String? role,
     CameraController? Function()? cameraController,
     bool? isCameraInitialized,
@@ -46,10 +48,11 @@ class AttendanceState {
     bool? isSubmitting,
     String? murobbi,
     String? whatsapp,
+    String? nim,
   }) {
     return AttendanceState(
       selectedName: selectedName != null ? selectedName() : this.selectedName,
-      gender: gender ?? this.gender,
+      gender: gender != null ? gender() : this.gender,
       role: role ?? this.role,
       cameraController: cameraController != null ? cameraController() : this.cameraController,
       isCameraInitialized: isCameraInitialized ?? this.isCameraInitialized,
@@ -59,6 +62,7 @@ class AttendanceState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       murobbi: murobbi ?? this.murobbi,
       whatsapp: whatsapp ?? this.whatsapp,
+      nim: nim ?? this.nim,
     );
   }
 }
@@ -179,11 +183,11 @@ class AttendanceController extends Notifier<AttendanceState> {
   }
 
   void updateRole(String role) {
-    state = state.copyWith(role: role, selectedName: () => null);
+    state = state.copyWith(role: role, selectedName: () => null, nim: '', gender: () => null);
   }
 
   void updateGender(String gender) {
-    state = state.copyWith(gender: gender);
+    state = state.copyWith(gender: () => gender);
   }
 
   void updateMurobbi(String murobbi) {
@@ -192,6 +196,10 @@ class AttendanceController extends Notifier<AttendanceState> {
 
   void updateWhatsapp(String whatsapp) {
     state = state.copyWith(whatsapp: whatsapp);
+  }
+
+  void updateNim(String nim) {
+    state = state.copyWith(nim: nim);
   }
 
   Future<bool> handleNameChange(String? val, BuildContext context) async {
@@ -210,7 +218,8 @@ class AttendanceController extends Notifier<AttendanceState> {
     if (myIdent != null) {
       state = state.copyWith(
         whatsapp: myIdent.whatsapp ?? state.whatsapp,
-        gender: myIdent.gender ?? state.gender,
+        gender: () => myIdent.gender ?? state.gender,
+        nim: myIdent.nim ?? state.nim,
       );
 
       final murobbiName = myIdent.murobbi;
@@ -250,6 +259,17 @@ class AttendanceController extends Notifier<AttendanceState> {
     required BuildContext context,
   }) async {
     if (state.isSubmitting) return false;
+    if (state.gender == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Harap pilih Jenis Kelamin/Gender Anda!'),
+            backgroundColor: Colors.amber,
+          ),
+        );
+      }
+      return false;
+    }
     if (sigBytes == null || sigPoints.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -286,44 +306,89 @@ class AttendanceController extends Notifier<AttendanceState> {
           orElse: () => null,
         );
 
-        // --- Face Verification ---
-        if (state.isCameraInitialized && state.cameraController != null) {
-          try {
-            final photoFile = await state.cameraController!.takePicture();
-            final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
-            if (currentFaceVector.isEmpty) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Verifikasi Wajah Gagal! Kamera terdeteksi gelap atau tertutup. '
-                      'Pastikan wajah Anda mendapat pencahayaan yang cukup.',
+        if (existingIdent != null) {
+          String? finalFaceVector = existingIdent.faceVector;
+          String? finalSignatureVector = existingIdent.signatureVector;
+          bool signatureResetAllowed = existingIdent.allowSignatureReset;
+
+          // --- Face Verification ---
+          if (state.isCameraInitialized && state.cameraController != null) {
+            try {
+              final photoFile = await state.cameraController!.takePicture();
+              final currentFaceVector = await BiometricHelper.extractFaceVector(photoFile);
+              if (currentFaceVector.isEmpty) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Verifikasi Wajah Gagal! Kamera terdeteksi gelap atau tertutup. '
+                        'Pastikan wajah Anda mendapat pencahayaan yang cukup.',
+                      ),
+                      backgroundColor: Colors.redAccent,
+                      duration: Duration(seconds: 5),
                     ),
-                    backgroundColor: Colors.redAccent,
-                    duration: Duration(seconds: 5),
-                  ),
-                );
+                  );
+                }
+                state = state.copyWith(isSubmitting: false);
+                await initializeCamera();
+                return false;
               }
-              state = state.copyWith(isSubmitting: false);
-              await initializeCamera();
-              return false;
+              faceVectorString = currentFaceVector.toString();
+
+              if (existingIdent.faceVector != null &&
+                  existingIdent.faceVector!.isNotEmpty &&
+                  existingIdent.faceVector != "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
+                final registeredFaceVector = BiometricHelper.parseVectorString(existingIdent.faceVector!);
+                final faceMatch = BiometricHelper.calculateSimilarity(currentFaceVector, registeredFaceVector) * 100.0;
+
+                if (faceMatch < 65.0) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Verifikasi Wajah Gagal! Kemiripan hanya ${faceMatch.toStringAsFixed(1)}% (Minimal 65.0%). '
+                          'Pastikan wajah Anda terlihat jelas di kamera.',
+                        ),
+                        backgroundColor: Colors.redAccent,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                  state = state.copyWith(isSubmitting: false);
+                  await initializeCamera();
+                  return false;
+                }
+              } else {
+                // Legacy mock or null: save the new face vector
+                finalFaceVector = faceVectorString;
+              }
+            } catch (e, stack) {
+              debugPrint('[Attendance] Face verification skipped: $e');
+              ref.read(firebaseServiceProvider).reportSystemException(
+                reporterName: selectedName,
+                role: role,
+                formSource: 'Absensi - Verifikasi Wajah',
+                exception: e,
+                stackTrace: stack,
+              );
             }
-            faceVectorString = currentFaceVector.toString();
+          }
 
-            if (existingIdent != null &&
-                existingIdent.faceVector != null &&
-                existingIdent.faceVector!.isNotEmpty &&
-                existingIdent.faceVector != "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
-              final registeredFaceVector = BiometricHelper.parseVectorString(existingIdent.faceVector!);
-              final faceMatch = BiometricHelper.calculateSimilarity(currentFaceVector, registeredFaceVector) * 100.0;
+          // --- Signature Verification ---
+          if (existingIdent.signatureVector != null &&
+              existingIdent.signatureVector!.isNotEmpty) {
+            final parsedSig = SignatureHelper.parse(existingIdent.signatureVector!);
+            if (parsedSig.points.isNotEmpty) {
+              final currentOffsets = sigPoints.map((p) => p.offset).toList();
+              final sigMatchRate = SignatureHelper.calculateSimilarity(currentOffsets, parsedSig.points);
 
-              if (faceMatch < 65.0) {
+              if (sigMatchRate < 35.0) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Verifikasi Wajah Gagal! Kemiripan hanya ${faceMatch.toStringAsFixed(1)}% (Minimal 65.0%). '
-                        'Pastikan wajah Anda terlihat jelas di kamera.',
+                        'Verifikasi Tanda Tangan Gagal! Kemiripan hanya ${sigMatchRate.toStringAsFixed(1)}% (Minimal 35.0%). '
+                        'Silakan tanda tangan sesuai pola Anda.',
                       ),
                       backgroundColor: Colors.redAccent,
                       duration: const Duration(seconds: 5),
@@ -334,81 +399,33 @@ class AttendanceController extends Notifier<AttendanceState> {
                 await initializeCamera();
                 return false;
               }
-            } else if (existingIdent?.faceVector == "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]") {
-              // Legacy mock vector: auto-migrate to real
-              await ref.read(firebaseServiceProvider).saveIdentity(
-                Identity(
-                  name: existingIdent!.name,
-                  gender: existingIdent.gender,
-                  whatsapp: existingIdent.whatsapp,
-                  signatureVector: existingIdent.signatureVector,
-                  faceVector: faceVectorString,
-                  allowSignatureReset: existingIdent.allowSignatureReset,
-                ),
-              );
-            } else if (existingIdent != null && (existingIdent.faceVector == null || existingIdent.faceVector!.isEmpty)) {
-              // No registered face yet — save current face as reference
-              await ref.read(firebaseServiceProvider).saveIdentity(
-                Identity(
-                  name: existingIdent.name,
-                  gender: existingIdent.gender,
-                  whatsapp: existingIdent.whatsapp,
-                  signatureVector: existingIdent.signatureVector,
-                  faceVector: faceVectorString,
-                  allowSignatureReset: existingIdent.allowSignatureReset,
-                ),
-              );
-            }
-          } catch (e, stack) {
-            debugPrint('[Attendance] Face verification skipped: $e');
-            ref.read(firebaseServiceProvider).reportSystemException(
-              reporterName: selectedName,
-              role: role,
-              formSource: 'Absensi - Verifikasi Wajah',
-              exception: e,
-              stackTrace: stack,
-            );
-          }
-        }
-
-        // --- Signature Verification ---
-        if (existingIdent != null &&
-            existingIdent.signatureVector != null &&
-            existingIdent.signatureVector!.isNotEmpty) {
-          final parsedSig = SignatureHelper.parse(existingIdent.signatureVector!);
-          if (parsedSig.points.isNotEmpty) {
-            final currentOffsets = sigPoints.map((p) => p.offset).toList();
-            final sigMatchRate = SignatureHelper.calculateSimilarity(currentOffsets, parsedSig.points);
-
-            if (sigMatchRate < 35.0) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Verifikasi Tanda Tangan Gagal! Kemiripan hanya ${sigMatchRate.toStringAsFixed(1)}% (Minimal 35.0%). '
-                      'Silakan tanda tangan sesuai pola Anda.',
-                    ),
-                    backgroundColor: Colors.redAccent,
-                    duration: const Duration(seconds: 5),
-                  ),
-                );
+              if (existingIdent.allowSignatureReset) {
+                finalSignatureVector = SignatureHelper.serialize(sigBase64, sigPoints);
+                signatureResetAllowed = false;
               }
-              state = state.copyWith(isSubmitting: false);
-              await initializeCamera();
-              return false;
+            } else {
+              // Parsed sig points empty: register signature
+              finalSignatureVector = SignatureHelper.serialize(sigBase64, sigPoints);
+              signatureResetAllowed = false;
             }
-          } else if (existingIdent.allowSignatureReset || parsedSig.points.isEmpty) {
-            // Save signature as reference if no points stored yet
-            final sigSerialized = SignatureHelper.serialize(
-              sigBase64,
-              sigPoints,
-            );
-            await ref.read(firebaseServiceProvider).updateIdentitySignature(selectedName, sigSerialized);
+          } else {
+            // No signature registered yet
+            finalSignatureVector = SignatureHelper.serialize(sigBase64, sigPoints);
+            signatureResetAllowed = false;
           }
-        } else if (existingIdent != null) {
-          // No signature registered yet — save current as reference
-          final sigSerialized = SignatureHelper.serialize(sigBase64, sigPoints);
-          await ref.read(firebaseServiceProvider).updateIdentitySignature(selectedName, sigSerialized);
+
+          // --- Save/Update Identity in Firestore ---
+          await ref.read(firebaseServiceProvider).saveIdentity(
+            Identity(
+              name: existingIdent.name,
+              nim: state.nim.trim().isNotEmpty ? state.nim.trim() : existingIdent.nim,
+              gender: state.gender,
+              whatsapp: state.whatsapp,
+              signatureVector: finalSignatureVector,
+              faceVector: finalFaceVector,
+              allowSignatureReset: signatureResetAllowed,
+            ),
+          );
         }
       }
 

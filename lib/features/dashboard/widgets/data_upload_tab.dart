@@ -100,7 +100,7 @@ class DataUploadTab extends ConsumerWidget {
                                       Text(
                                         id.gender == 'ikhwan'
                                             ? "Ikhwan"
-                                            : "Akhwat",
+                                            : (id.gender == 'akhwat' ? "Akhwat" : "-"),
                                         style: const TextStyle(
                                           color: Colors.white60,
                                           fontSize: 13,

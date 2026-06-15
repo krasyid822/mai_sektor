@@ -96,12 +96,14 @@ class _SystemReportFormState extends ConsumerState<SystemReportForm> {
             children: [
               const Icon(Icons.bug_report, color: Colors.amberAccent, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'Laporkan Masalah / Kendala Sistem',
-                style: TextStyle(
-                  color: Colors.amberAccent.withValues(alpha: 0.9),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              Expanded(
+                child: Text(
+                  'Laporkan Masalah / Kendala Sistem',
+                  style: TextStyle(
+                    color: Colors.amberAccent.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],

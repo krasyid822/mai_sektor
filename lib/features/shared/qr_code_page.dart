@@ -537,15 +537,17 @@ class _QrCodePageState extends ConsumerState<QrCodePage> {
               children: [
                 const Icon(Icons.location_on, color: Colors.tealAccent, size: 24),
                 const SizedBox(width: 12),
-                const Text(
-                  "Pencegah Kecurangan Geolocation",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                const Expanded(
+                  child: Text(
+                    "Pencegah Kecurangan Geolocation",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Switch(
                   value: _enableGeolocation,
                   activeThumbColor: Colors.tealAccent,

@@ -20,6 +20,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
   final _formKey = GlobalKey<FormState>();
   final _murobbiController = TextEditingController();
   final _whatsappController = TextEditingController();
+  final _nimController = TextEditingController();
 
   final SignatureController _sigController = SignatureController(
     penStrokeWidth: 3,
@@ -31,6 +32,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
   void dispose() {
     _murobbiController.dispose();
     _whatsappController.dispose();
+    _nimController.dispose();
     _sigController.dispose();
     super.dispose();
   }
@@ -46,6 +48,9 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
       }
       if (prev?.murobbi != next.murobbi) {
         _murobbiController.text = next.murobbi;
+      }
+      if (prev?.nim != next.nim) {
+        _nimController.text = next.nim;
       }
       if (next.selectedName == null && prev?.selectedName != null) {
         _formKey.currentState?.reset();
@@ -191,6 +196,21 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                   ),
                   const SizedBox(height: 16),
 
+                  // NIM (Optional)
+                  TextFormField(
+                    controller: _nimController,
+                    keyboardType: TextInputType.text,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Nomor Induk Mahasiswa (NIM)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      hintText: 'Masukkan NIM Anda',
+                      hintStyle: TextStyle(color: Colors.white38),
+                    ),
+                    onChanged: (val) => controller.updateNim(val),
+                  ),
+                  const SizedBox(height: 16),
+
                   // WhatsApp
                   TextFormField(
                     controller: _whatsappController,
@@ -220,7 +240,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       const Text(
-                        "Jenis Kelamin: ",
+                        "Gender: ",
                         style: TextStyle(color: Colors.white70),
                       ),
                       ChoiceChip(
@@ -256,7 +276,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                           spacing: 8,
                           children: [
                             const Text(
-                              "Pemindaian Vektor Wajah Real-time",
+                              "Pemindaian Vektor Wajah",
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontWeight: FontWeight.bold,
@@ -306,7 +326,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                                 Icon(Icons.videocam_off, color: Colors.white30),
                                 SizedBox(width: 12),
                                 Text(
-                                  "Kamera belum aktif",
+                                  "Menunggu kamera aktif...",
                                   style: TextStyle(color: Colors.white70, fontSize: 13),
                                 ),
                               ],
@@ -315,7 +335,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                               onPressed: () => controller.initializeCamera(),
                               icon: const Icon(Icons.videocam, size: 16, color: Colors.tealAccent),
                               label: const Text(
-                                "Aktifkan",
+                                "Retry",
                                 style: TextStyle(color: Colors.tealAccent, fontSize: 13, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -326,10 +346,11 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
 
                   SignatureUploadWidget(
                     controller: _sigController,
-                    title: "Tanda Tangan Digital",
+                    title: "Tanda Tangan",
                     height: 150,
                     onCleared: () => _sigController.clear(),
                   ),
+                  const SizedBox(height: 24),
 
                   // Error report
                   SystemReportForm(
