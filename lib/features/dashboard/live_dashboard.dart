@@ -10,6 +10,7 @@ import 'widgets/signed_contracts_tab.dart';
 import 'widgets/manage_profile_groups_tab.dart';
 import 'widgets/manage_biometrics_tab.dart';
 import 'widgets/pretest_posttest_input_tab.dart';
+import 'widgets/system_reports_tab.dart';
 
 class LiveDashboard extends ConsumerStatefulWidget {
   const LiveDashboard({super.key});
@@ -25,7 +26,7 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 10, vsync: this);
   }
 
   @override
@@ -65,6 +66,7 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
               text: 'Kelola Profil & Kelompok',
             ),
             Tab(icon: Icon(Icons.fingerprint), text: 'Kelola Biometrik'),
+            Tab(icon: Icon(Icons.bug_report), text: 'Laporan Masalah'),
           ],
         ),
       ),
@@ -91,6 +93,7 @@ class _LiveDashboardState extends ConsumerState<LiveDashboard>
               const PretestPosttestInputTab(),
               ManageProfileAndGroupsTab(config: config),
               const ManageBiometricsTab(),
+              const SystemReportsTab(),
             ],
           );
         },

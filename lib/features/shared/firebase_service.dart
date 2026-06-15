@@ -271,6 +271,26 @@ class FirebaseService {
     }
     return null;
   }
+
+  // --- SYSTEM REPORTS ---
+  Future<void> addSystemReport(SystemReport report) async {
+    await _firestore.collection('system_reports').add(report.toMap());
+  }
+
+  Stream<List<SystemReport>> streamSystemReports() {
+    return _firestore
+        .collection('system_reports')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => SystemReport.fromMap(doc.id, doc.data()))
+              .toList();
+        })
+        .handleError((e, stack) {
+          _consoleLog('streamSystemReports error: $e\n$stack');
+        });
+  }
 }
 
 final firebaseServiceProvider = Provider<FirebaseService>((ref) {
@@ -314,6 +334,10 @@ final resumeScoresStreamProvider = StreamProvider<Map<String, double>>((ref) {
 
 final testScoresStreamProvider = StreamProvider<List<TestScore>>((ref) {
   return ref.watch(firebaseServiceProvider).streamTestScores();
+});
+
+final systemReportsStreamProvider = StreamProvider<List<SystemReport>>((ref) {
+  return ref.watch(firebaseServiceProvider).streamSystemReports();
 });
 
 class SessionAuthNotifier extends Notifier<bool> {

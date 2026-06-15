@@ -374,3 +374,42 @@ class CertificateRecord {
     );
   }
 }
+
+class SystemReport {
+  final String id;
+  final String reporterName;
+  final String role; // 'peserta', 'guru', 'tamu', 'kepsek', 'kadiv'
+  final String formSource; // e.g., 'Absensi', 'Kontrak Belajar', 'Room Qudwah', 'Pre/Post Test'
+  final String description;
+  final DateTime timestamp;
+
+  SystemReport({
+    required this.id,
+    required this.reporterName,
+    required this.role,
+    required this.formSource,
+    required this.description,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'reporterName': reporterName,
+      'role': role,
+      'formSource': formSource,
+      'description': description,
+      'timestamp': Timestamp.fromDate(timestamp),
+    };
+  }
+
+  factory SystemReport.fromMap(String id, Map<String, dynamic> map) {
+    return SystemReport(
+      id: id,
+      reporterName: map['reporterName'] ?? '',
+      role: map['role'] ?? '',
+      formSource: map['formSource'] ?? '',
+      description: map['description'] ?? '',
+      timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+}

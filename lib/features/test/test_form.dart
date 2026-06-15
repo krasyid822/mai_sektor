@@ -22,6 +22,7 @@ class _TestFormState extends ConsumerState<TestForm> {
   final _materiController = TextEditingController();
   final _pemateriController = TextEditingController();
   final _instrukturController = TextEditingController();
+  final _errorController = TextEditingController();
 
   // Test answers
   final Map<String, String> _answers = {};
@@ -32,6 +33,7 @@ class _TestFormState extends ConsumerState<TestForm> {
     _materiController.dispose();
     _pemateriController.dispose();
     _instrukturController.dispose();
+    _errorController.dispose();
     super.dispose();
   }
 
@@ -86,6 +88,22 @@ class _TestFormState extends ConsumerState<TestForm> {
 
     try {
       await firebaseService.addTest(testRecord);
+
+      // Save System Report if filled
+      final errorText = _errorController.text.trim();
+      if (errorText.isNotEmpty) {
+        await firebaseService.addSystemReport(
+          SystemReport(
+            id: '',
+            reporterName: name,
+            role: 'peserta',
+            formSource: widget.testType == 'pre' ? 'Pre-Test' : 'Post-Test',
+            description: errorText,
+            timestamp: DateTime.now(),
+          ),
+        );
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -96,6 +114,7 @@ class _TestFormState extends ConsumerState<TestForm> {
         );
       }
       _formKey.currentState!.reset();
+      _errorController.clear();
       setState(() {
         _answers.clear();
       });
@@ -342,6 +361,15 @@ class _TestFormState extends ConsumerState<TestForm> {
                     ),
                   ],
 
+                  // Error report
+                  TextFormField(
+                    controller: _errorController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Laporkan Kesalahan Sistem (Opsional)',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
