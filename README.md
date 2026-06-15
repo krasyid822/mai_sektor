@@ -40,6 +40,10 @@
  27. Kepala sekolah memiliki wewenang untuk membypass jika toleransi vektor salah
  28. Izinkan mengganti tanda tangan atas izin kepala sekolah
 
+ # Push plugin ke pub.dev
+cd web_geolocator
+flutter pub publish
+
  # Catatan
  perbaiki hardware resources usage agar mematikan kamera misal saat tidak diperlukan
 
@@ -56,3 +60,4 @@
  tampilkan count number di tab laporan masalah (menampilkan jumlah masalah yang dilaporkan)
 
  izinkan kepala sekolah untuk membersihkan laporan kesalahan sistem yang dirasa sudah selesai
+ 

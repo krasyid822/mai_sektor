@@ -135,6 +135,7 @@ class SetupController extends Notifier<SetupState> {
         final controller = CameraController(
           camerasList[defaultIndex],
           ResolutionPreset.low,
+          enableAudio: false,
         );
         await controller.initialize();
         _cameraController = controller;
@@ -189,6 +190,7 @@ class SetupController extends Notifier<SetupState> {
     final newController = CameraController(
       selectedCamera,
       ResolutionPreset.low,
+      enableAudio: false,
     );
 
     try {
@@ -742,10 +744,10 @@ class SetupController extends Notifier<SetupState> {
         activeMode: 'idle',
         kepalaSekolahNama: name,
         kepengurusanTahun: year,
-        bobotKelasBesar: 40.0,
-        bobotRoomQudwah: 40.0,
-        bobotTugas: 20.0,
-        nilaiMinimum: 75.0,
+        bobotKelasBesar: 0.0,
+        bobotRoomQudwah: 0.0,
+        bobotTugas: 0.0,
+        nilaiMinimum: 0.0,
         kepsekSignatureBase64: kepsekSigBase64,
       );
       await firebaseService.saveConfig(config);
@@ -825,10 +827,10 @@ class SetupController extends Notifier<SetupState> {
         activeMode: 'idle',
         kepalaSekolahNama: name,
         kepengurusanTahun: year,
-        bobotKelasBesar: 40.0,
-        bobotRoomQudwah: 40.0,
-        bobotTugas: 20.0,
-        nilaiMinimum: 75.0,
+        bobotKelasBesar: 0.0,
+        bobotRoomQudwah: 0.0,
+        bobotTugas: 0.0,
+        nilaiMinimum: 0.0,
         kepsekSignatureBase64: kepsekSigBase64,
       );
       await firebaseService.saveConfig(config);

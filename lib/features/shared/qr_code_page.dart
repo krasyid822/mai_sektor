@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'models.dart';
 import 'firebase_service.dart';
-import 'location_service.dart';
+import 'package:web_geolocator/web_geolocator.dart';
 
 /// A dedicated page that displays all QR codes (Session + per-Walikelas Qudwah Rooms)
 /// with download buttons for each.

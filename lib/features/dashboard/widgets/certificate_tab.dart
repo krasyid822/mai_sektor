@@ -451,6 +451,7 @@ class CertificateTab extends ConsumerWidget {
             attendances: attendances,
             uploadedFiles: uploadedFiles,
             resumeScores: resumeScores,
+            config: config,
           );
           final total = scores['total'] ?? 0.0;
           return total >= config.nilaiMinimum;

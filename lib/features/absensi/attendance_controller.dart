@@ -102,6 +102,7 @@ class AttendanceController extends Notifier<AttendanceState> {
         final controller = CameraController(
           camerasList[defaultIndex],
           ResolutionPreset.low,
+          enableAudio: false,
         );
         await controller.initialize();
         _cameraController = controller;
@@ -158,6 +159,7 @@ class AttendanceController extends Notifier<AttendanceState> {
     final newController = CameraController(
       selectedCamera,
       ResolutionPreset.low,
+      enableAudio: false,
     );
 
     try {

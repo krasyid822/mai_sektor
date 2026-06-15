@@ -24,10 +24,10 @@ class DashboardState {
     this.isPlaying = false,
     this.volume = 0.5,
     this.currentTrack = "Nasyid Perjuangan - Harapan Ummah",
-    this.bobotKelasBesar = 40.0,
-    this.bobotRoomQudwah = 40.0,
-    this.bobotTugas = 20.0,
-    this.nilaiMin = 75.0,
+    this.bobotKelasBesar = 0.0,
+    this.bobotRoomQudwah = 0.0,
+    this.bobotTugas = 0.0,
+    this.nilaiMin = 0.0,
     this.testFilterQuery = '',
     this.selectedTeacherForNewParticipant,
   });
@@ -81,10 +81,10 @@ class DashboardController extends Notifier<DashboardState> {
 
     // Initialize config if already loaded
     final config = ref.read(configStreamProvider).value;
-    final initialBobotKelasBesar = config?.bobotKelasBesar ?? 40.0;
-    final initialBobotRoomQudwah = config?.bobotRoomQudwah ?? 40.0;
-    final initialBobotTugas = config?.bobotTugas ?? 20.0;
-    final initialNilaiMin = config?.nilaiMinimum ?? 75.0;
+    final initialBobotKelasBesar = config?.bobotKelasBesar ?? 0.0;
+    final initialBobotRoomQudwah = config?.bobotRoomQudwah ?? 0.0;
+    final initialBobotTugas = config?.bobotTugas ?? 0.0;
+    final initialNilaiMin = config?.nilaiMinimum ?? 0.0;
 
     _updateAudioSource(
       "Nasyid Perjuangan - Harapan Ummah",
@@ -95,6 +95,18 @@ class DashboardController extends Notifier<DashboardState> {
     ref.onDispose(() {
       _audioElement?.pause();
       _audioElement = null;
+    });
+
+    ref.listen<AsyncValue<AppConfig?>>(configStreamProvider, (prev, next) {
+      final newConfig = next.value;
+      if (newConfig != null) {
+        state = state.copyWith(
+          bobotKelasBesar: newConfig.bobotKelasBesar,
+          bobotRoomQudwah: newConfig.bobotRoomQudwah,
+          bobotTugas: newConfig.bobotTugas,
+          nilaiMin: newConfig.nilaiMinimum,
+        );
+      }
     });
 
     return DashboardState(
@@ -223,6 +235,7 @@ class DashboardController extends Notifier<DashboardState> {
     required List<Attendance> attendances,
     required List<String> uploadedFiles,
     required Map<String, double> resumeScores,
+    required AppConfig config,
     List<TestScore> testScores = const [],
   }) {
     // --- Kelas Besar: 4 materi, each with pre+post average ---
@@ -282,8 +295,6 @@ class DashboardController extends Notifier<DashboardState> {
       kbMateriCount++;
     }
 
-    // Kelas Besar score is average of materi that have actual scores
-    // If no materi has scores at all, kelasBesarScore = 0
     final kelasBesarScore = kbMateriCount > 0
         ? kelasBesarTotal / kbMateriCount
         : 0.0;
@@ -316,9 +327,9 @@ class DashboardController extends Notifier<DashboardState> {
 
     // --- Total ---
     final total =
-        (kelasBesarScore * state.bobotKelasBesar / 100) +
-        (roomQudwahScore * state.bobotRoomQudwah / 100) +
-        (tugasScore * state.bobotTugas / 100);
+        (kelasBesarScore * config.bobotKelasBesar / 100) +
+        (roomQudwahScore * config.bobotRoomQudwah / 100) +
+        (tugasScore * config.bobotTugas / 100);
 
     return {
       'kelasBesar': kelasBesarScore,
@@ -477,7 +488,8 @@ class DashboardController extends Notifier<DashboardState> {
           pw.SizedBox(height: 4),
           pw.Text(
             _sanitizePdfText(
-              "Kepala Sekolah: ${config.kepalaSekolahNama} | Tahun: ${config.kepengurusanTahun}",
+              "Kepala Sekolah: ${config.kepalaSekolahNama} | Tahun: ${config.kepengurusanTahun}\n"
+              "Kebijakan Bobot - Kelas Besar: ${config.bobotKelasBesar.toStringAsFixed(1)}%, Room Qudwah: ${config.bobotRoomQudwah.toStringAsFixed(1)}%, Tugas: ${config.bobotTugas.toStringAsFixed(1)}% | Nilai Minimum: ${config.nilaiMinimum.toStringAsFixed(1)}",
             ),
             style: const pw.TextStyle(fontSize: 10),
           ),
@@ -545,6 +557,7 @@ class DashboardController extends Notifier<DashboardState> {
                     uploadedFiles: uploadedFiles,
                     resumeScores: resumeScores,
                     testScores: testScores,
+                    config: config,
                   );
                   final m1 = scores['materi_Urgensi Membina'] ?? 0.0;
                   final m2 = scores['materi_Al Qudwah Qobla Dakwah'] ?? 0.0;
@@ -553,7 +566,7 @@ class DashboardController extends Notifier<DashboardState> {
                   final rq = scores['roomQudwah'] ?? 0.0;
                   final tg = scores['tugas'] ?? 0.0;
                   final total = scores['total'] ?? 0.0;
-                  final status = total >= state.nilaiMin
+                  final status = total >= config.nilaiMinimum
                       ? "LULUS"
                       : "TIDAK LULUS";
                   return pw.TableRow(

@@ -5,7 +5,7 @@ import '../absensi/attendance_form.dart';
 import '../test/test_form.dart';
 import '../kontrak/kontrak_form.dart';
 import '../shared/informative_splash_loading.dart';
-import '../shared/location_service.dart';
+import 'package:web_geolocator/web_geolocator.dart';
 import '../shared/models.dart';
 import '../shared/system_report_form.dart';
 

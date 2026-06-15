@@ -204,6 +204,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                 uploadedFiles: uploadedFiles,
                 resumeScores: resumeScores,
                 testScores: testScores,
+                config: config,
               );
               final m1 = scores['materi_Urgensi Membina'] ?? 0.0;
               final m2 = scores['materi_Al Qudwah Qobla Dakwah'] ?? 0.0;
@@ -212,7 +213,7 @@ class RekapPenilaianTab extends ConsumerWidget {
               final roomQudwahScore = scores['roomQudwah'] ?? 0.0;
               final tugasScore = scores['tugas'] ?? 0.0;
               final total = scores['total'] ?? 0.0;
-              final isPass = total >= state.nilaiMin;
+              final isPass = total >= config.nilaiMinimum;
 
               return TableRow(
                 children: [
@@ -432,7 +433,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                           ),
                           onChanged: (val) {
                             controller.updateWeights(
-                              bobotKelasBesar: double.tryParse(val) ?? 40.0,
+                              bobotKelasBesar: double.tryParse(val) ?? 0.0,
                             );
                           },
                         ),
@@ -449,7 +450,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                           ),
                           onChanged: (val) {
                             controller.updateWeights(
-                              bobotRoomQudwah: double.tryParse(val) ?? 40.0,
+                              bobotRoomQudwah: double.tryParse(val) ?? 0.0,
                             );
                           },
                         ),
@@ -466,7 +467,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                           ),
                           onChanged: (val) {
                             controller.updateWeights(
-                              bobotTugas: double.tryParse(val) ?? 20.0,
+                              bobotTugas: double.tryParse(val) ?? 0.0,
                             );
                           },
                         ),
@@ -483,7 +484,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                           ),
                           onChanged: (val) {
                             controller.updateWeights(
-                              nilaiMin: double.tryParse(val) ?? 75.0,
+                              nilaiMin: double.tryParse(val) ?? 0.0,
                             );
                           },
                         ),
@@ -708,6 +709,30 @@ class RekapPenilaianTab extends ConsumerWidget {
                         ],
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      "Kebijakan Aktif - Kelas Besar: ${config.bobotKelasBesar.toStringAsFixed(1)}%, "
+                      "Room Qudwah: ${config.bobotRoomQudwah.toStringAsFixed(1)}%, "
+                      "Tugas: ${config.bobotTugas.toStringAsFixed(1)}% | "
+                      "Nilai Minimum Kelulusan: ${config.nilaiMinimum.toStringAsFixed(1)}",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
