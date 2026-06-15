@@ -1,12 +1,10 @@
 // ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signature/signature.dart';
 import 'package:camera/camera.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../shared/models.dart';
 import '../shared/firebase_service.dart';
+import 'attendance_controller.dart';
 
 class AttendanceForm extends ConsumerStatefulWidget {
   const AttendanceForm({super.key});
@@ -17,12 +15,9 @@ class AttendanceForm extends ConsumerStatefulWidget {
 
 class _AttendanceFormState extends ConsumerState<AttendanceForm> {
   final _formKey = GlobalKey<FormState>();
-  String? _selectedName;
   final _murobbiController = TextEditingController();
   final _whatsappController = TextEditingController();
   final _errorController = TextEditingController();
-  String _gender = 'ikhwan';
-  String _role = 'peserta';
 
   final SignatureController _sigController = SignatureController(
     penStrokeWidth: 3,
@@ -30,204 +25,36 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
     exportBackgroundColor: Colors.white,
   );
 
-  CameraController? _cameraController;
-  bool _isCameraInitialized = false;
-  String? _capturedFaceVector;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeCamera();
-  }
-
-  Future<void> _initializeCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        CameraDescription selectedCamera = cameras.first;
-        for (final camera in cameras) {
-          if (camera.lensDirection == CameraLensDirection.back) {
-            selectedCamera = camera;
-            break;
-          }
-        }
-        _cameraController = CameraController(
-          selectedCamera,
-          ResolutionPreset.low,
-        );
-        await _cameraController!.initialize();
-        if (mounted) {
-          setState(() => _isCameraInitialized = true);
-        }
-      }
-    } catch (e) {
-      debugPrint("Camera init error: $e");
-    }
-  }
-
   @override
   void dispose() {
     _murobbiController.dispose();
     _whatsappController.dispose();
     _errorController.dispose();
     _sigController.dispose();
-    _cameraController?.dispose();
     super.dispose();
-  }
-
-  Future<void> _onNameChanged(String? val) async {
-    if (val == null || val.trim().isEmpty) return;
-
-    final idents = ref.read(identitiesStreamProvider).value ?? [];
-    final groups = ref.read(groupsStreamProvider).value ?? [];
-    final walikelasNames = groups.map((g) => g.walikelas).toSet();
-
-    final myIdent = idents.cast<Identity?>().firstWhere(
-      (i) => i!.name.toLowerCase() == val.trim().toLowerCase(),
-      orElse: () => null,
-    );
-
-    if (myIdent != null) {
-      if (myIdent.whatsapp != null && myIdent.whatsapp!.isNotEmpty) {
-        _whatsappController.text = myIdent.whatsapp!;
-      }
-      if (myIdent.gender != null && myIdent.gender!.isNotEmpty) {
-        setState(() {
-          _gender = myIdent.gender!;
-        });
-      }
-
-      final murobbiName = myIdent.murobbi;
-      if (murobbiName != null && murobbiName.isNotEmpty) {
-        if (walikelasNames.contains(murobbiName)) {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text("Konfirmasi Murobbi"),
-              content: Text("Apakah Murobbi/Mentor Anda adalah $murobbiName?"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text("Tidak"),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text("Ya"),
-                ),
-              ],
-            ),
-          );
-          if (confirm == true && mounted) {
-            setState(() {
-              _murobbiController.text = murobbiName;
-            });
-          }
-        }
-      }
-    }
-  }
-
-  bool _isSubmitting = false;
-
-  Future<void> _submitAttendance() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_isSubmitting) return;
-
-    final sigBytes = await _sigController.toPngBytes();
-    if (sigBytes == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Harap tanda tangani pad absensi!')),
-        );
-      }
-      return;
-    }
-
-    final sigBase64 = Uri.dataFromBytes(
-      sigBytes,
-      mimeType: 'image/png',
-    ).toString();
-
-    // Mock Face Vector Generation
-    final faceVector =
-        _capturedFaceVector ?? "[0.12, -0.45, 0.89, 0.23, 0.54, -0.01]";
-
-    final name = _role == 'tamu'
-        ? 'Tamu - ${_selectedName ?? "Anonim"}'
-        : (_selectedName ?? '');
-    final role = _role;
-
-    setState(() {
-      _isCameraInitialized = false;
-      _isSubmitting = true;
-    });
-
-    try {
-      final firestore = ref.read(firestoreProvider);
-      final todayStart = DateTime.now().copyWith(
-        hour: 0,
-        minute: 0,
-        second: 0,
-        millisecond: 0,
-      );
-      final existingAttendance = await firestore
-          .collection('attendance')
-          .where('identityName', isEqualTo: name)
-          .where('role', isEqualTo: role)
-          .where(
-            'checkInTime',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart),
-          )
-          .get();
-
-      if (existingAttendance.docs.isNotEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Anda sudah melakukan absensi hari ini!'),
-              backgroundColor: Colors.amber,
-            ),
-          );
-        }
-        _initializeCamera();
-        return;
-      }
-
-      final att = Attendance(
-        id: '',
-        identityName: name,
-        role: role,
-        checkInTime: DateTime.now(),
-        signatureBase64: sigBase64,
-        faceVector: faceVector,
-        errorReport: _errorController.text.trim(),
-      );
-
-      await ref.read(firebaseServiceProvider).addAttendance(att);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Absensi berhasil disimpan!')),
-        );
-      }
-      _formKey.currentState!.reset();
-      _sigController.clear();
-      _initializeCamera();
-    } catch (e) {
-      html.window.console.log('[AttendanceForm] Error submitting: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: SelectableText('Gagal mengirim absensi: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(attendanceControllerProvider);
+    final controller = ref.read(attendanceControllerProvider.notifier);
+
+    ref.listen<AttendanceState>(attendanceControllerProvider, (prev, next) {
+      if (prev?.whatsapp != next.whatsapp) {
+        _whatsappController.text = next.whatsapp;
+      }
+      if (prev?.murobbi != next.murobbi) {
+        _murobbiController.text = next.murobbi;
+      }
+      if (prev?.errorReport != next.errorReport) {
+        _errorController.text = next.errorReport;
+      }
+      if (next.selectedName == null && prev?.selectedName != null) {
+        _formKey.currentState?.reset();
+        _sigController.clear();
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: Center(
@@ -260,7 +87,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                   // Role Selector
                   DropdownButtonFormField<String>(
                     dropdownColor: const Color(0xFF1E293B),
-                    initialValue: _role,
+                    value: state.role,
                     style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
                       labelText: 'Tipe Kehadiran',
@@ -273,33 +100,28 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         child: Text(label.toUpperCase()),
                       );
                     }).toList(),
-                    onChanged: (val) =>
-                        setState(() => _role = val ?? 'peserta'),
+                    onChanged: (val) {
+                      if (val != null) {
+                        controller.updateRole(val);
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
 
                   // Name dropdown (if not guest)
-                  if (_role != 'tamu')
+                  if (state.role != 'tamu')
                     Consumer(
                       builder: (context, ref, _) {
-                        final groups =
-                            ref.watch(groupsStreamProvider).value ?? [];
-                        final walikelasNames = groups
-                            .map((g) => g.walikelas)
-                            .toSet();
-                        final participantNames = groups
-                            .expand((g) => g.participants)
-                            .toSet();
+                        final groups = ref.watch(groupsStreamProvider).value ?? [];
+                        final walikelasNames = groups.map((g) => g.walikelas).toSet();
+                        final participantNames = groups.expand((g) => g.participants).toSet();
 
-                        // Filter names based on role
                         List<String> filteredNames;
                         String labelText;
-                        if (_role == 'guru') {
-                          // Guru/walikelas: show only walikelas names
+                        if (state.role == 'guru') {
                           filteredNames = walikelasNames.toList()..sort();
                           labelText = 'Nama Wali Kelas';
                         } else {
-                          // Peserta: show only participant names
                           filteredNames = participantNames.toList()..sort();
                           labelText = 'Nama Peserta';
                         }
@@ -315,12 +137,10 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         }
 
                         return DropdownButtonFormField<String>(
-                          key: ValueKey(_selectedName),
+                          key: ValueKey(state.selectedName),
                           dropdownColor: const Color(0xFF1E293B),
-                          initialValue:
-                              (_selectedName != null &&
-                                  filteredNames.contains(_selectedName))
-                              ? _selectedName
+                          value: (state.selectedName != null && filteredNames.contains(state.selectedName))
+                              ? state.selectedName
                               : null,
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
@@ -334,11 +154,9 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                             );
                           }).toList(),
                           onChanged: (val) async {
-                            setState(() => _selectedName = val);
-                            await _onNameChanged(val);
+                            await controller.handleNameChange(val, context);
                           },
-                          validator: (val) =>
-                              val == null ? '$labelText wajib dipilih' : null,
+                          validator: (val) => val == null ? '$labelText wajib dipilih' : null,
                         );
                       },
                     )
@@ -350,12 +168,9 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         labelStyle: TextStyle(color: Colors.white70),
                       ),
                       onChanged: (val) async {
-                        setState(() => _selectedName = val);
-                        await _onNameChanged(val);
+                        await controller.handleNameChange(val, context);
                       },
-                      validator: (val) => val == null || val.isEmpty
-                          ? 'Nama wajib diisi'
-                          : null,
+                      validator: (val) => val == null || val.isEmpty ? 'Nama wajib diisi' : null,
                     ),
 
                   const SizedBox(height: 16),
@@ -370,9 +185,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                       hintText: 'Masukkan nama pembina halaqah Anda',
                       hintStyle: TextStyle(color: Colors.white38),
                     ),
-                    onChanged: (val) {
-                      // Simulating instant check in real database
-                    },
+                    onChanged: (val) => controller.updateMurobbi(val),
                   ),
                   const SizedBox(height: 16),
 
@@ -385,6 +198,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                       labelText: 'Kontak WhatsApp',
                       labelStyle: TextStyle(color: Colors.white70),
                     ),
+                    onChanged: (val) => controller.updateWhatsapp(val),
                     validator: (val) {
                       if (val == null || val.isEmpty) {
                         return 'Nomor WhatsApp wajib diisi';
@@ -408,52 +222,65 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         style: TextStyle(color: Colors.white70),
                       ),
                       ChoiceChip(
-                        selected: _gender == 'ikhwan',
+                        selected: state.gender == 'ikhwan',
                         label: const Text('Ikhwan'),
                         selectedColor: Colors.tealAccent,
                         checkmarkColor: Colors.black,
                         labelStyle: TextStyle(
-                          color: _gender == 'ikhwan'
-                              ? Colors.black
-                              : Colors.white,
+                          color: state.gender == 'ikhwan' ? Colors.black : Colors.white,
                         ),
-                        onSelected: (selected) =>
-                            setState(() => _gender = 'ikhwan'),
+                        onSelected: (selected) => controller.updateGender('ikhwan'),
                       ),
                       ChoiceChip(
-                        selected: _gender == 'akhwat',
+                        selected: state.gender == 'akhwat',
                         label: const Text('Akhwat'),
                         selectedColor: Colors.tealAccent,
                         checkmarkColor: Colors.black,
                         labelStyle: TextStyle(
-                          color: _gender == 'akhwat'
-                              ? Colors.black
-                              : Colors.white,
+                          color: state.gender == 'akhwat' ? Colors.black : Colors.white,
                         ),
-                        onSelected: (selected) =>
-                            setState(() => _gender = 'akhwat'),
+                        onSelected: (selected) => controller.updateGender('akhwat'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
 
                   // Web Face Vector Mock (Camera preview if available)
-                  if (_isCameraInitialized && _cameraController != null)
+                  if (state.isCameraInitialized && state.cameraController != null)
                     Column(
                       children: [
-                        const Text(
-                          "Pemindaian Vektor Wajah Real-time",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Pemindaian Vektor Wajah Real-time",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (state.cameras.length > 1) ...[
+                              const SizedBox(width: 8),
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(
+                                  Icons.flip_camera_ios_outlined,
+                                  color: Colors.tealAccent,
+                                  size: 20,
+                                ),
+                                tooltip: 'Ganti Kamera',
+                                onPressed: controller.switchCamera,
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: SizedBox(
                             height: 150,
-                            child: CameraPreview(_cameraController!),
+                            child: CameraPreview(state.cameraController!),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -496,6 +323,7 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                       labelText: 'Laporkan Kesalahan Sistem (Opsional)',
                       labelStyle: TextStyle(color: Colors.white70),
                     ),
+                    onChanged: (val) => controller.updateErrorReport(val),
                   ),
                   const SizedBox(height: 32),
 
@@ -505,8 +333,20 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: _isSubmitting ? null : _submitAttendance,
-                    child: _isSubmitting
+                    onPressed: state.isSubmitting
+                        ? null
+                        : () async {
+                            if (_formKey.currentState!.validate()) {
+                              final sigBytes = await _sigController.toPngBytes();
+                              if (context.mounted) {
+                                await controller.submitAttendance(
+                                  sigBytes: sigBytes,
+                                  context: context,
+                                );
+                              }
+                            }
+                          },
+                    child: state.isSubmitting
                         ? const SizedBox(
                             height: 20,
                             width: 20,
