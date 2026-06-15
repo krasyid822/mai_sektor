@@ -251,7 +251,6 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Web Face Vector Mock (Camera preview if available)
                   if (state.isCameraInitialized && state.cameraController != null)
                     Column(
                       children: [
@@ -292,6 +291,41 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         ),
                         const SizedBox(height: 8),
                       ],
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: const [
+                                Icon(Icons.videocam_off, color: Colors.white30),
+                                SizedBox(width: 12),
+                                Text(
+                                  "Kamera belum aktif",
+                                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                            TextButton.icon(
+                              onPressed: () => controller.initializeCamera(),
+                              icon: const Icon(Icons.videocam, size: 16, color: Colors.tealAccent),
+                              label: const Text(
+                                "Aktifkan",
+                                style: TextStyle(color: Colors.tealAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
 
                   SignatureUploadWidget(
