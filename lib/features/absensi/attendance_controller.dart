@@ -106,9 +106,22 @@ class AttendanceController extends Notifier<AttendanceState> {
         );
         await controller.initialize();
         _cameraController = controller;
+
+        final updatedCameras = await availableCameras();
+        int newSelectedIndex = defaultIndex;
+        if (updatedCameras.isNotEmpty) {
+          final activeCamera = camerasList[defaultIndex];
+          final matchIdx = updatedCameras.indexWhere(
+            (c) => c.name == activeCamera.name || c.lensDirection == activeCamera.lensDirection
+          );
+          if (matchIdx != -1) {
+            newSelectedIndex = matchIdx;
+          }
+        }
+
         state = state.copyWith(
-          cameras: camerasList,
-          selectedCameraIndex: defaultIndex,
+          cameras: updatedCameras.isNotEmpty ? updatedCameras : camerasList,
+          selectedCameraIndex: newSelectedIndex,
           cameraController: () => controller,
           isCameraInitialized: true,
         );
