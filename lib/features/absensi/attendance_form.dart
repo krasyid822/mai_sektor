@@ -7,6 +7,7 @@ import '../shared/firebase_service.dart';
 import '../shared/signature_upload_widget.dart';
 import '../shared/title_case_formatter.dart';
 import 'attendance_controller.dart';
+import '../shared/system_report_form.dart';
 
 class AttendanceForm extends ConsumerStatefulWidget {
   const AttendanceForm({super.key});
@@ -19,7 +20,6 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
   final _formKey = GlobalKey<FormState>();
   final _murobbiController = TextEditingController();
   final _whatsappController = TextEditingController();
-  final _errorController = TextEditingController();
 
   final SignatureController _sigController = SignatureController(
     penStrokeWidth: 3,
@@ -31,7 +31,6 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
   void dispose() {
     _murobbiController.dispose();
     _whatsappController.dispose();
-    _errorController.dispose();
     _sigController.dispose();
     super.dispose();
   }
@@ -47,9 +46,6 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
       }
       if (prev?.murobbi != next.murobbi) {
         _murobbiController.text = next.murobbi;
-      }
-      if (prev?.errorReport != next.errorReport) {
-        _errorController.text = next.errorReport;
       }
       if (next.selectedName == null && prev?.selectedName != null) {
         _formKey.currentState?.reset();
@@ -336,14 +332,10 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                   ),
 
                   // Error report
-                  TextFormField(
-                    controller: _errorController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Laporkan Kesalahan Sistem (Opsional)',
-                      labelStyle: TextStyle(color: Colors.white70),
-                    ),
-                    onChanged: (val) => controller.updateErrorReport(val),
+                  SystemReportForm(
+                    getReporterName: () => state.selectedName ?? '',
+                    role: state.role,
+                    formSource: 'Absensi',
                   ),
                   const SizedBox(height: 32),
 

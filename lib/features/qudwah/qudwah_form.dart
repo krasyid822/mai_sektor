@@ -5,6 +5,7 @@ import '../shared/models.dart';
 import '../shared/firebase_service.dart';
 import '../shared/signature_upload_widget.dart';
 import '../shared/title_case_formatter.dart';
+import '../shared/system_report_form.dart';
 
 class QudwahForm extends ConsumerStatefulWidget {
   final String? initialWalikelas;
@@ -18,7 +19,6 @@ class QudwahForm extends ConsumerStatefulWidget {
 class _QudwahFormState extends ConsumerState<QudwahForm> {
   final _formKey = GlobalKey<FormState>();
   final _walikelasController = TextEditingController();
-  final _errorController = TextEditingController();
   String? _selectedPeserta;
   String? _selectedMateri;
   int _pertemuanKe = 1;
@@ -84,7 +84,6 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
   @override
   void dispose() {
     _walikelasController.dispose();
-    _errorController.dispose();
     _sigController.dispose();
     super.dispose();
   }
@@ -126,21 +125,6 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
       final walikelasName = _walikelasController.text.trim();
       await firebaseService.updateWalikelasSignature(walikelasName, sigBase64);
 
-      // Save System Report if filled
-      final errorText = _errorController.text.trim();
-      if (errorText.isNotEmpty) {
-        await firebaseService.addSystemReport(
-          SystemReport(
-            id: '',
-            reporterName: walikelasName,
-            role: 'guru',
-            formSource: 'Room Qudwah',
-            description: errorText,
-            timestamp: DateTime.now(),
-          ),
-        );
-      }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -149,7 +133,6 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
         );
       }
       _sigController.clear();
-      _errorController.clear();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -400,13 +383,10 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
                   const SizedBox(height: 24),
 
                   // Error report
-                  TextFormField(
-                    controller: _errorController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Laporkan Kesalahan Sistem (Opsional)',
-                      labelStyle: TextStyle(color: Colors.white70),
-                    ),
+                  SystemReportForm(
+                    getReporterName: () => _walikelasController.text.trim(),
+                    role: 'guru',
+                    formSource: 'Room Qudwah',
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton(

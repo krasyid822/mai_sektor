@@ -7,6 +7,7 @@ import '../shared/models.dart';
 import '../shared/firebase_service.dart';
 import '../shared/signature_helper.dart';
 import '../shared/signature_upload_widget.dart';
+import '../shared/system_report_form.dart';
 
 class KontrakForm extends ConsumerStatefulWidget {
   const KontrakForm({super.key});
@@ -19,7 +20,6 @@ class _KontrakFormState extends ConsumerState<KontrakForm> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedName;
   bool _agreedToTerms = false;
-  final _errorController = TextEditingController();
 
   final SignatureController _sigController = SignatureController(
     penStrokeWidth: 3,
@@ -32,7 +32,6 @@ class _KontrakFormState extends ConsumerState<KontrakForm> {
   @override
   void dispose() {
     _sigController.dispose();
-    _errorController.dispose();
     super.dispose();
   }
 
@@ -158,21 +157,6 @@ class _KontrakFormState extends ConsumerState<KontrakForm> {
               ),
             );
 
-        // Save System Report if filled
-        final errorText = _errorController.text.trim();
-        if (errorText.isNotEmpty) {
-          await ref.read(firebaseServiceProvider).addSystemReport(
-            SystemReport(
-              id: '',
-              reporterName: _selectedName!,
-              role: 'peserta',
-              formSource: 'Kontrak Belajar',
-              description: errorText,
-              timestamp: DateTime.now(),
-            ),
-          );
-        }
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -183,7 +167,6 @@ class _KontrakFormState extends ConsumerState<KontrakForm> {
           );
         }
         _sigController.clear();
-        _errorController.clear();
         setState(() {
           _agreedToTerms = false;
         });
@@ -331,13 +314,10 @@ class _KontrakFormState extends ConsumerState<KontrakForm> {
                   const SizedBox(height: 24),
 
                   // Error report
-                  TextFormField(
-                    controller: _errorController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Laporkan Kesalahan Sistem (Opsional)',
-                      labelStyle: TextStyle(color: Colors.white70),
-                    ),
+                  SystemReportForm(
+                    getReporterName: () => _selectedName ?? '',
+                    role: 'peserta',
+                    formSource: 'Kontrak Belajar',
                   ),
                   const SizedBox(height: 24),
 

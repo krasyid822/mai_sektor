@@ -453,25 +453,11 @@ class AttendanceController extends Notifier<AttendanceState> {
         checkInTime: DateTime.now(),
         signatureBase64: sigBase64,
         faceVector: faceVectorString.isNotEmpty ? faceVectorString : null,
-        errorReport: state.errorReport.trim(),
+        errorReport: null,
         materi: activeMateri,
       );
 
       await ref.read(firebaseServiceProvider).addAttendance(att);
-
-      // Save System Report if filled
-      if (state.errorReport.trim().isNotEmpty) {
-        await ref.read(firebaseServiceProvider).addSystemReport(
-          SystemReport(
-            id: '',
-            reporterName: selectedName,
-            role: role,
-            formSource: 'Absensi',
-            description: state.errorReport.trim(),
-            timestamp: DateTime.now(),
-          ),
-        );
-      }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
