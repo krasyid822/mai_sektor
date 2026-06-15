@@ -46,5 +46,10 @@ service cloud.firestore {
     match /certificates/{document} {
       allow read, write: if true;
     }
+    
+    // Rules for System Reports
+    match /system_reports/{document} {
+      allow read, write: if true;
+    }
   }
 }
