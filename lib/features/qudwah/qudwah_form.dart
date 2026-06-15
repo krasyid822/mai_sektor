@@ -143,7 +143,6 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
 
   @override
   Widget build(BuildContext context) {
-    final identitiesAsync = ref.watch(identitiesStreamProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -218,7 +217,7 @@ class _QudwahFormState extends ConsumerState<QudwahForm> {
 
                       return DropdownButtonFormField<String>(
                         dropdownColor: const Color(0xFF1E293B),
-                        value: (dynamic val) {
+                        value: () {
                           if (_selectedPeserta != null && myParticipants.contains(_selectedPeserta)) {
                             return _selectedPeserta;
                           }
