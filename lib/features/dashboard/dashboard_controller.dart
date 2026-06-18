@@ -636,20 +636,27 @@ class DashboardController extends Notifier<DashboardState> {
   }) {
     final isRetyping = type == 'retyping';
     final input = html.FileUploadInputElement()
-      ..accept = isRetyping ? '.txt' : '.pdf';
-    input.click();
+      ..accept = isRetyping ? '.txt' : '.pdf'
+      ..style.display = 'none';
+    html.document.body!.append(input);
+
     input.onChange.listen((event) {
+      if (input.files!.isEmpty) {
+        input.remove();
+        return;
+      }
       final file = input.files!.first;
-      if (file.size > 1024 * 1024) {
+      if (file.size > 4 * 1024 * 1024) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Ukuran file melebihi 1MB! Silakan pilih file yang lebih kecil.',
+                'Ukuran file melebihi 4MB! Silakan pilih file yang lebih kecil.',
               ),
             ),
           );
         }
+        input.remove();
         return;
       }
       final reader = html.FileReader();
@@ -667,6 +674,7 @@ class DashboardController extends Notifier<DashboardState> {
               ),
             );
           }
+          input.remove();
         });
       } else {
         reader.readAsDataUrl(file);
@@ -680,9 +688,12 @@ class DashboardController extends Notifier<DashboardState> {
               SnackBar(content: Text('Berhasil mengunggah $type untuk $id!')),
             );
           }
+          input.remove();
         });
       }
     });
+
+    input.click();
   }
 
   Future<void> downloadResume({

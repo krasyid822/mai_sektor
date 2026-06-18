@@ -25,7 +25,7 @@ flutter:
     platforms:
       web:
         pluginClass: WebGeolocatorWeb
-        fileName: lib/src/location_service_web.dart
+        fileName: src/location_service_web.dart
 
   # To add assets to your package, add an assets section, like this:
   # assets:

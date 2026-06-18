@@ -234,6 +234,99 @@
           callback(JSON.stringify({ error: err.toString() }));
         });
     };
+
+    window.compressBase64Data = async function(base64Data) {
+      try {
+        let isDataUrl = base64Data.startsWith('data:');
+        let header = '';
+        let base64Body = base64Data;
+        if (isDataUrl) {
+          const parts = base64Data.split(',');
+          header = parts[0] + ',';
+          base64Body = parts[1];
+        }
+
+        const binString = atob(base64Body);
+        const len = binString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binString.charCodeAt(i);
+        }
+
+        const stream = new Response(bytes).body.pipeThrough(new CompressionStream('gzip'));
+        const compressedBytes = new Uint8Array(await new Response(stream).arrayBuffer());
+
+        let binary = '';
+        const chunk = 8192;
+        for (let i = 0; i < compressedBytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, compressedBytes.subarray(i, i + chunk));
+        }
+        const compressedBase64 = btoa(binary);
+
+        return header + "GZIP:" + compressedBase64;
+      } catch (e) {
+        console.error("Compression error:", e);
+        return base64Data;
+      }
+    };
+
+    window.decompressBase64Data = async function(base64Data) {
+      try {
+        let isDataUrl = base64Data.startsWith('data:');
+        let header = '';
+        let base64Body = base64Data;
+        if (isDataUrl) {
+          const parts = base64Data.split(',');
+          header = parts[0] + ',';
+          base64Body = parts[1];
+        }
+
+        if (!base64Body.startsWith('GZIP:')) {
+          return base64Data;
+        }
+        base64Body = base64Body.substring(5);
+
+        const binString = atob(base64Body);
+        const len = binString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binString.charCodeAt(i);
+        }
+
+        const stream = new Response(bytes).body.pipeThrough(new DecompressionStream('gzip'));
+        const decompressedBytes = new Uint8Array(await new Response(stream).arrayBuffer());
+
+        let binary = '';
+        const chunk = 8192;
+        for (let i = 0; i < decompressedBytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, decompressedBytes.subarray(i, i + chunk));
+        }
+        const decompressedBase64 = btoa(binary);
+
+        return header + decompressedBase64;
+      } catch (e) {
+        console.error("Decompression error:", e);
+        return base64Data;
+      }
+    };
+
+    window.compressBase64DataCallback = function(base64Data, callback) {
+      window.compressBase64Data(base64Data)
+        .then((res) => callback(res))
+        .catch((err) => {
+          console.error("Callback compress error:", err);
+          callback(base64Data);
+        });
+    };
+
+    window.decompressBase64DataCallback = function(base64Data, callback) {
+      window.decompressBase64Data(base64Data)
+        .then((res) => callback(res))
+        .catch((err) => {
+          console.error("Callback decompress error:", err);
+          callback(base64Data);
+        });
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

@@ -1,5 +1,7 @@
 // ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
+import 'dart:async';
 import 'dart:html' as html;
+import 'dart:js' as js;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models.dart';
@@ -203,17 +205,97 @@ class FirebaseService {
 
   // --- PDF UPLOADS (stored as Base64 in Firestore to comply with base64 storage request) ---
   Future<void> saveFileBase64(String type, String id, String base64Data) async {
-    await _firestore.collection('files').doc('$type-$id').set({
-      'data': base64Data,
-      'updatedAt': FieldValue.serverTimestamp(),
-      'confirmedByUser': true,
-    });
+    String finalData = base64Data;
+    try {
+      final completer = Completer<String>();
+      // ignore: undefined_function
+      final jsCallback = js.allowInterop((dynamic res) {
+        completer.complete(res as String);
+      });
+      js.context.callMethod('compressBase64DataCallback', [base64Data, jsCallback]);
+      finalData = await completer.future;
+    } catch (e) {
+      _consoleLog('Failed to compress base64 data: $e');
+    }
+
+    final docRef = _firestore.collection('files').doc('$type-$id');
+
+    if (finalData.length <= 800000) {
+      await docRef.set({
+        'data': finalData,
+        'chunkCount': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'confirmedByUser': true,
+      });
+    } else {
+      const int chunkSize = 700000;
+      final int totalLength = finalData.length;
+      final List<String> chunks = [];
+      for (int i = 0; i < totalLength; i += chunkSize) {
+        final int end = (i + chunkSize < totalLength) ? i + chunkSize : totalLength;
+        chunks.add(finalData.substring(i, end));
+      }
+
+      final WriteBatch batch = _firestore.batch();
+      for (int i = 0; i < chunks.length; i++) {
+        final chunkRef = docRef.collection('chunks').doc('$i');
+        batch.set(chunkRef, {
+          'data': chunks[i],
+          'confirmedByUser': true,
+        });
+      }
+      await batch.commit();
+
+      await docRef.set({
+        'data': null,
+        'chunkCount': chunks.length,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'confirmedByUser': true,
+      });
+    }
   }
 
   Future<String?> getFileBase64(String type, String id) async {
-    final doc = await _firestore.collection('files').doc('$type-$id').get();
+    final docRef = _firestore.collection('files').doc('$type-$id');
+    final doc = await docRef.get();
     if (doc.exists) {
-      return doc.data()?['data'] as String?;
+      final int? chunkCount = doc.data()?['chunkCount'] as int?;
+      String? rawData;
+
+      if (chunkCount != null && chunkCount > 0) {
+        final List<Future<DocumentSnapshot<Map<String, dynamic>>>> futures = [];
+        for (int i = 0; i < chunkCount; i++) {
+          futures.add(docRef.collection('chunks').doc('$i').get());
+        }
+        final List<DocumentSnapshot<Map<String, dynamic>>> snapshots = await Future.wait(futures);
+        final StringBuffer buffer = StringBuffer();
+        for (final snapshot in snapshots) {
+          if (snapshot.exists) {
+            final chunkData = snapshot.data()?['data'] as String?;
+            if (chunkData != null) {
+              buffer.write(chunkData);
+            }
+          }
+        }
+        rawData = buffer.toString();
+      } else {
+        rawData = doc.data()?['data'] as String?;
+      }
+
+      if (rawData != null) {
+        try {
+          final completer = Completer<String>();
+          // ignore: undefined_function
+          final jsCallback = js.allowInterop((dynamic res) {
+            completer.complete(res as String);
+          });
+          js.context.callMethod('decompressBase64DataCallback', [rawData, jsCallback]);
+          return await completer.future;
+        } catch (e) {
+          _consoleLog('Failed to decompress base64 data: $e');
+          return rawData;
+        }
+      }
     }
     return null;
   }
