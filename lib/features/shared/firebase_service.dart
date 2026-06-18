@@ -34,18 +34,22 @@ class FirebaseService {
   }
 
   Future<void> saveConfig(AppConfig config) async {
-    await _firestore.collection('config').doc('global').set(config.toMap());
+    final data = config.toMap();
+    data['confirmedByUser'] = true;
+    await _firestore.collection('config').doc('global').set(data);
   }
 
   Future<void> updateActiveMode(String mode) async {
     await _firestore.collection('config').doc('global').update({
       'activeMode': mode,
+      'confirmedByUser': true,
     });
   }
 
   Future<void> updateRekapSigned(bool signed) async {
     await _firestore.collection('config').doc('global').update({
       'rekapSigned': signed,
+      'confirmedByUser': true,
     });
   }
 
@@ -65,10 +69,12 @@ class FirebaseService {
   }
 
   Future<void> saveIdentity(Identity identity) async {
+    final data = identity.toMap();
+    data['confirmedByUser'] = true;
     await _firestore
         .collection('identities')
         .doc(identity.name)
-        .set(identity.toMap());
+        .set(data);
   }
 
   Future<void> updateIdentitySignature(
@@ -78,12 +84,14 @@ class FirebaseService {
     await _firestore.collection('identities').doc(name).update({
       'signatureVector': signatureVector,
       'allowSignatureReset': false, // Auto-revoke reset permission once updated
+      'confirmedByUser': true,
     });
   }
 
   Future<void> updateSignatureResetPermission(String name, bool allowed) async {
     await _firestore.collection('identities').doc(name).set({
       'allowSignatureReset': allowed,
+      'confirmedByUser': true,
     }, SetOptions(merge: true));
   }
 
@@ -101,13 +109,19 @@ class FirebaseService {
   }
 
   Future<void> saveGroup(Group group) async {
+    final data = group.toMap();
+    data['confirmedByUser'] = true;
     await _firestore
         .collection('groups')
         .doc(group.walikelas)
-        .set(group.toMap());
+        .set(data);
   }
 
   Future<void> deleteGroup(String walikelas) async {
+    await _firestore.collection('groups').doc(walikelas).update({
+      'deleteConfirmed': true,
+      'confirmedByUser': true,
+    });
     await _firestore.collection('groups').doc(walikelas).delete();
   }
 
@@ -117,10 +131,15 @@ class FirebaseService {
   ) async {
     await _firestore.collection('groups').doc(walikelasName).update({
       'walikelasSignatureBase64': signatureBase64,
+      'confirmedByUser': true,
     });
   }
 
   Future<void> deleteIdentity(String name) async {
+    await _firestore.collection('identities').doc(name).update({
+      'deleteConfirmed': true,
+      'confirmedByUser': true,
+    });
     await _firestore.collection('identities').doc(name).delete();
   }
 
@@ -187,6 +206,7 @@ class FirebaseService {
     await _firestore.collection('files').doc('$type-$id').set({
       'data': base64Data,
       'updatedAt': FieldValue.serverTimestamp(),
+      'confirmedByUser': true,
     });
   }
 
@@ -214,6 +234,7 @@ class FirebaseService {
     await _firestore.collection('resume_scores').doc(participantName).set({
       'score': score,
       'updatedAt': FieldValue.serverTimestamp(),
+      'confirmedByUser': true,
     });
   }
 
@@ -239,10 +260,12 @@ class FirebaseService {
   // --- TEST SCORES (headmaster input) ---
   Future<void> saveTestScore(TestScore testScore) async {
     final docId = '${testScore.participantName}_${testScore.materi}';
+    final data = testScore.toMap();
+    data['confirmedByUser'] = true;
     await _firestore
         .collection('test_scores')
         .doc(docId)
-        .set(testScore.toMap());
+        .set(data);
   }
 
   Stream<List<TestScore>> streamTestScores() {
@@ -253,10 +276,12 @@ class FirebaseService {
 
   // --- CERTIFICATE RECORDS ---
   Future<void> saveCertificateRecord(CertificateRecord record) async {
+    final data = record.toMap();
+    data['confirmedByUser'] = true;
     await _firestore
         .collection('certificates')
         .doc(record.verificationCode)
-        .set(record.toMap());
+        .set(data);
   }
 
   Future<CertificateRecord?> getCertificateRecord(
@@ -278,6 +303,10 @@ class FirebaseService {
   }
 
   Future<void> deleteSystemReport(String id) async {
+    await _firestore.collection('system_reports').doc(id).update({
+      'deleteConfirmed': true,
+      'confirmedByUser': true,
+    });
     await _firestore.collection('system_reports').doc(id).delete();
   }
 

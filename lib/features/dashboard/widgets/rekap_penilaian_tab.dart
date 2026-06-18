@@ -432,7 +432,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                             labelStyle: TextStyle(color: Colors.white70),
                           ),
                           onChanged: (val) {
-                            controller.updateWeights(
+                            controller.updateLocalWeights(
                               bobotKelasBesar: double.tryParse(val) ?? 0.0,
                             );
                           },
@@ -449,7 +449,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                             labelStyle: TextStyle(color: Colors.white70),
                           ),
                           onChanged: (val) {
-                            controller.updateWeights(
+                            controller.updateLocalWeights(
                               bobotRoomQudwah: double.tryParse(val) ?? 0.0,
                             );
                           },
@@ -466,7 +466,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                             labelStyle: TextStyle(color: Colors.white70),
                           ),
                           onChanged: (val) {
-                            controller.updateWeights(
+                            controller.updateLocalWeights(
                               bobotTugas: double.tryParse(val) ?? 0.0,
                             );
                           },
@@ -483,7 +483,7 @@ class RekapPenilaianTab extends ConsumerWidget {
                             labelStyle: TextStyle(color: Colors.white70),
                           ),
                           onChanged: (val) {
-                            controller.updateWeights(
+                            controller.updateLocalWeights(
                               nilaiMin: double.tryParse(val) ?? 0.0,
                             );
                           },
@@ -494,6 +494,70 @@ class RekapPenilaianTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   // Total bobot checker
                   _buildBobotTotalIndicator(state),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.tealAccent,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final totalBobot = state.bobotKelasBesar +
+                          state.bobotRoomQudwah +
+                          state.bobotTugas;
+                      if ((totalBobot - 100.0).abs() > 0.01) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Error: Total bobot harus 100% sebelum dapat disimpan!",
+                            ),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                        return;
+                      }
+
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text("Simpan Kebijakan Nilai"),
+                          content: const Text(
+                            "Apakah Anda yakin ingin memperbarui kebijakan bobot nilai dan nilai minimum kelulusan?",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text("Batal"),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text(
+                                "Simpan",
+                                style: TextStyle(color: Colors.tealAccent),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await controller.saveWeightsToFirestore();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text("Kebijakan nilai berhasil disimpan!"),
+                              backgroundColor: Colors.teal,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.save),
+                    label: const Text("Simpan Perubahan"),
+                  ),
                 ],
               ),
             ),

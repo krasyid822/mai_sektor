@@ -1,11 +1,11 @@
 name: web_geolocator
 description: "A lightweight, dependency-free geolocation plugin for Flutter Web utilizing native browser Geolocation APIs with WASM-safe stubs."
-version: 0.0.1
-repository: https://github.com/krasyid822/mai_sektor/tree/c32deaf8d98a87cb82ce6ec3d94ce1274ea2e654/web_geolocator
+version: 0.0.3
+repository: https://github.com/krasyid822/mai_sektor/tree/d1792450e5bbc9f5381ffd4f604529636b884ab7/web_geolocator
 
 environment:
   sdk: ^3.12.2
-  flutter: ">=1.17.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
@@ -21,6 +21,11 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  plugin:
+    platforms:
+      web:
+        pluginClass: WebGeolocatorWeb
+        fileName: lib/src/location_service_web.dart
 
   # To add assets to your package, add an assets section, like this:
   # assets:

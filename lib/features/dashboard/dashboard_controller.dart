@@ -162,12 +162,12 @@ class DashboardController extends Notifier<DashboardState> {
     _audioElement?.volume = volume;
   }
 
-  Future<void> updateWeights({
+  void updateLocalWeights({
     double? bobotKelasBesar,
     double? bobotRoomQudwah,
     double? bobotTugas,
     double? nilaiMin,
-  }) async {
+  }) {
     state = state.copyWith(
       bobotKelasBesar: bobotKelasBesar ?? state.bobotKelasBesar,
       bobotRoomQudwah: bobotRoomQudwah ?? state.bobotRoomQudwah,
@@ -179,7 +179,6 @@ class DashboardController extends Notifier<DashboardState> {
     final totalBobot =
         state.bobotKelasBesar + state.bobotRoomQudwah + state.bobotTugas;
     if ((totalBobot - 100.0).abs() > 0.01) {
-      // Log warning — UI will show the indicator from rekap_penilaian_tab
       debugPrint(
         '⚠️ PERINGATAN BOBOT: Total bobot ${totalBobot.toStringAsFixed(1)}% tidak sama dengan 100%! '
         '(Kelas Besar: ${state.bobotKelasBesar}%, '
@@ -187,8 +186,9 @@ class DashboardController extends Notifier<DashboardState> {
         'Tugas: ${state.bobotTugas}%)',
       );
     }
+  }
 
-    // Save updated weights and minimum score to Firestore global config
+  Future<void> saveWeightsToFirestore() async {
     final currentConfig = ref.read(configStreamProvider).value;
     if (currentConfig != null) {
       final updatedConfig = AppConfig(

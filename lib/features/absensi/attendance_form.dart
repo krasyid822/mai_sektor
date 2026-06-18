@@ -60,8 +60,10 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      body: Center(
-        child: SingleChildScrollView(
+      body: Stack(
+        children: [
+          Center(
+            child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 600),
@@ -321,15 +323,20 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: const [
-                                Icon(Icons.videocam_off, color: Colors.white30),
-                                SizedBox(width: 12),
-                                Text(
-                                  "Menunggu kamera aktif...",
-                                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                                ),
-                              ],
+                            Expanded(
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.videocam_off, color: Colors.white30),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      "Menunggu kamera aktif...",
+                                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             TextButton.icon(
                               onPressed: () => controller.initializeCamera(),
@@ -399,7 +406,45 @@ class _AttendanceFormState extends ConsumerState<AttendanceForm> {
               ),
             ),
           ),
-        ),
+            ),
+          ),
+          if (state.isSubmitting)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black87,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        CircularProgressIndicator(color: Colors.tealAccent),
+                        SizedBox(height: 20),
+                        Text(
+                          "Mencocokkan Wajah & Data...",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Mohon tunggu sebentar",
+                          style: TextStyle(color: Colors.white54, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

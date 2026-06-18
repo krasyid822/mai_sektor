@@ -17,7 +17,7 @@ Add `web_geolocator` to your `pubspec.yaml`:
 dependencies:
   web_geolocator:
     git:
-      url: https://github.com/krasyid822/mai_sektor/tree/c32deaf8d98a87cb82ce6ec3d94ce1274ea2e654/web_geolocator
+      url: https://github.com/krasyid822/mai_sektor/tree/d1792450e5bbc9f5381ffd4f604529636b884ab7/web_geolocator
 ```
 
 ## Usage

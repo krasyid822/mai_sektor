@@ -2,54 +2,89 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if the action involves explicit user confirmation
+    function isConfirmedByUser() {
+      return request.resource.data.confirmedByUser == true;
+    }
+
     // Rules for App Settings / Sektor configuration
     match /config/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for registered identities (students, teachers, presenters)
     match /identities/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
+      allow delete: if resource.data.deleteConfirmed == true;
     }
     
     // Rules for Walikelas groupings
     match /groups/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
+      allow delete: if resource.data.deleteConfirmed == true;
     }
     
     // Rules for attendance logs
     match /attendance/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for Pretest and Posttest evaluations
     match /tests/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for Room Qudwah evaluations
     match /evaluations/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for PDF uploads stored as base64
     match /files/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for Headmaster-inputted pretest/posttest scores
     match /test_scores/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for certificate verification records
     match /certificates/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
+    }
+ 
+    // Rules for Resume Scores
+    match /resume_scores/{document} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
     }
     
     // Rules for System Reports
     match /system_reports/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update: if isConfirmedByUser();
+      allow delete: if resource.data.deleteConfirmed == true;
     }
   }
 }

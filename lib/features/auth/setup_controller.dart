@@ -399,7 +399,7 @@ class SetupController extends Notifier<SetupState> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Nama Kepala Sekolah atau tahun tidak sesuai dengan konfigurasi aktif (${currentConfig.kepalaSekolahNama} - ${currentConfig.kepengurusanTahun}).',
+                  'Nama Kepala Sekolah atau tahun tidak sesuai dengan konfigurasi aktif (${currentConfig.kepengurusanTahun}).',
                 ),
                 backgroundColor: Colors.redAccent,
               ),
@@ -739,16 +739,35 @@ class SetupController extends Notifier<SetupState> {
 
     try {
       final firebaseService = ref.read(firebaseServiceProvider);
+      final firestore = ref.read(firestoreProvider);
+      
+      // Fetch current config from Firestore to preserve existing fields like NIMs and switch states
+      final configDoc = await firestore.collection('config').doc('global').get();
+      AppConfig? current;
+      if (configDoc.exists && configDoc.data() != null) {
+        current = AppConfig.fromMap(configDoc.data()!);
+      }
 
       final config = AppConfig(
-        activeMode: 'idle',
+        activeMode: current?.activeMode ?? 'idle',
         kepalaSekolahNama: name,
         kepengurusanTahun: year,
-        bobotKelasBesar: 0.0,
-        bobotRoomQudwah: 0.0,
-        bobotTugas: 0.0,
-        nilaiMinimum: 0.0,
+        bobotKelasBesar: current?.bobotKelasBesar ?? 0.0,
+        bobotRoomQudwah: current?.bobotRoomQudwah ?? 0.0,
+        bobotTugas: current?.bobotTugas ?? 0.0,
+        nilaiMinimum: current?.nilaiMinimum ?? 0.0,
         kepsekSignatureBase64: kepsekSigBase64,
+        kadivNama: current?.kadivNama,
+        kadivSignatureBase64: current?.kadivSignatureBase64,
+        activeMateri: current?.activeMateri ?? '',
+        rekapSigned: current?.rekapSigned ?? false,
+        kepalaSekolahNim: current?.kepalaSekolahNim,
+        kadivNim: current?.kadivNim,
+        kadivIsKepsek: current?.kadivIsKepsek ?? false,
+        enableGeolocation: current?.enableGeolocation ?? false,
+        targetLatitude: current?.targetLatitude ?? 0.0,
+        targetLongitude: current?.targetLongitude ?? 0.0,
+        targetRadius: current?.targetRadius ?? 100.0,
       );
       await firebaseService.saveConfig(config);
 
@@ -823,15 +842,33 @@ class SetupController extends Notifier<SetupState> {
         ).toString();
       }
 
+      final firestore = ref.read(firestoreProvider);
+      final configDoc = await firestore.collection('config').doc('global').get();
+      AppConfig? current;
+      if (configDoc.exists && configDoc.data() != null) {
+        current = AppConfig.fromMap(configDoc.data()!);
+      }
+
       final config = AppConfig(
-        activeMode: 'idle',
+        activeMode: current?.activeMode ?? 'idle',
         kepalaSekolahNama: name,
         kepengurusanTahun: year,
-        bobotKelasBesar: 0.0,
-        bobotRoomQudwah: 0.0,
-        bobotTugas: 0.0,
-        nilaiMinimum: 0.0,
+        bobotKelasBesar: current?.bobotKelasBesar ?? 0.0,
+        bobotRoomQudwah: current?.bobotRoomQudwah ?? 0.0,
+        bobotTugas: current?.bobotTugas ?? 0.0,
+        nilaiMinimum: current?.nilaiMinimum ?? 0.0,
         kepsekSignatureBase64: kepsekSigBase64,
+        kadivNama: current?.kadivNama,
+        kadivSignatureBase64: current?.kadivSignatureBase64,
+        activeMateri: current?.activeMateri ?? '',
+        rekapSigned: current?.rekapSigned ?? false,
+        kepalaSekolahNim: current?.kepalaSekolahNim,
+        kadivNim: current?.kadivNim,
+        kadivIsKepsek: current?.kadivIsKepsek ?? false,
+        enableGeolocation: current?.enableGeolocation ?? false,
+        targetLatitude: current?.targetLatitude ?? 0.0,
+        targetLongitude: current?.targetLongitude ?? 0.0,
+        targetRadius: current?.targetRadius ?? 100.0,
       );
       await firebaseService.saveConfig(config);
 

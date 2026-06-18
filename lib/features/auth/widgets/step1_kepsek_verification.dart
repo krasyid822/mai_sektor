@@ -202,8 +202,10 @@ class Step1KepsekVerification extends ConsumerWidget {
     final state = ref.watch(setupControllerProvider);
     final controller = ref.read(setupControllerProvider.notifier);
 
+    Widget content;
+
     if (!state.hasCheckedStatus) {
-      return Form(
+      content = Form(
         key: formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -283,10 +285,8 @@ class Step1KepsekVerification extends ConsumerWidget {
           ],
         ),
       );
-    }
-
-    if (state.isReverifying) {
-      return Column(
+    } else if (state.isReverifying) {
+      content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
@@ -384,174 +384,216 @@ class Step1KepsekVerification extends ConsumerWidget {
           ),
         ],
       );
-    }
-
-    return Form(
-      key: formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Lengkapi Profil Kepala Sekolah',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+    } else {
+      content = Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Lengkapi Profil Kepala Sekolah',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Isi data identitas lengkap untuk Kepala Sekolah: ${kepsekController.text.trim()}',
-            style: const TextStyle(color: Colors.white70),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 8),
+            Text(
+              'Isi data identitas lengkap untuk Kepala Sekolah: ${kepsekController.text.trim()}',
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
 
-          _buildTextField(
-            controller: whatsappController,
-            label: 'Nomor WhatsApp',
-            icon: Icons.phone,
-            validator: (val) =>
-                val == null || val.isEmpty ? 'WhatsApp wajib diisi' : null,
-          ),
-          const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Jenis Kelamin: ",
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    selected: gender == 'ikhwan',
-                    label: const Text('Ikhwan'),
-                    selectedColor: Colors.tealAccent,
-                    checkmarkColor: Colors.black,
-                    labelStyle: TextStyle(
-                      color: gender == 'ikhwan' ? Colors.black : Colors.white,
-                    ),
-                    onSelected: (selected) => onGenderChanged('ikhwan'),
-                  ),
-                  ChoiceChip(
-                    selected: gender == 'akhwat',
-                    label: const Text('Akhwat'),
-                    selectedColor: Colors.tealAccent,
-                    checkmarkColor: Colors.black,
-                    labelStyle: TextStyle(
-                      color: gender == 'akhwat' ? Colors.black : Colors.white,
-                    ),
-                    onSelected: (selected) => onGenderChanged('akhwat'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          if (!state.showFaceScan)
-            _buildRegisteredCard(
-              title: "Vektor Wajah Kepala Sekolah",
-              icon: Icons.face,
-              onChange: controller.revertToFaceScan,
-            )
-          else if (state.isCameraInitialized && state.cameraController != null)
+            _buildTextField(
+              controller: whatsappController,
+              label: 'Nomor WhatsApp',
+              icon: Icons.phone,
+              validator: (val) =>
+                  val == null || val.isEmpty ? 'WhatsApp wajib diisi' : null,
+            ),
+            const SizedBox(height: 16),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  children: [
-                    const Text(
-                      "Pemindaian Vektor Wajah Kepala Sekolah",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (state.cameras.length > 1)
-                      IconButton(
-                        constraints: const BoxConstraints(),
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(
-                          Icons.flip_camera_ios_outlined,
-                          color: Colors.tealAccent,
-                          size: 20,
-                        ),
-                        tooltip: 'Ganti Kamera',
-                        onPressed: controller.switchCamera,
-                      ),
-                  ],
+                const Text(
+                  "Jenis Kelamin: ",
+                  style: TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    height: 150,
-                    child: CameraPreview(state.cameraController!),
-                  ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      selected: gender == 'ikhwan',
+                      label: const Text('Ikhwan'),
+                      selectedColor: Colors.tealAccent,
+                      checkmarkColor: Colors.black,
+                      labelStyle: TextStyle(
+                        color: gender == 'ikhwan' ? Colors.black : Colors.white,
+                      ),
+                      onSelected: (selected) => onGenderChanged('ikhwan'),
+                    ),
+                    ChoiceChip(
+                      selected: gender == 'akhwat',
+                      label: const Text('Akhwat'),
+                      selectedColor: Colors.tealAccent,
+                      checkmarkColor: Colors.black,
+                      labelStyle: TextStyle(
+                        color: gender == 'akhwat' ? Colors.black : Colors.white,
+                      ),
+                      onSelected: (selected) => onGenderChanged('akhwat'),
+                    ),
+                  ],
                 ),
               ],
             ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          if (!state.showSigUpload)
-            _buildRegisteredCard(
-              title: "Tanda Tangan Kepala Sekolah",
-              icon: Icons.gesture,
-              onChange: controller.revertToSigUpload,
-            )
-          else
-            SignatureUploadWidget(
-              title: 'Tanda Tangan Kepala Sekolah (Wajib)',
-              controller: kepsekSigController,
-            ),
-          const SizedBox(height: 32),
+            if (!state.showFaceScan)
+              _buildRegisteredCard(
+                title: "Vektor Wajah Kepala Sekolah",
+                icon: Icons.face,
+                onChange: controller.revertToFaceScan,
+              )
+            else if (state.isCameraInitialized && state.cameraController != null)
+              Column(
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      const Text(
+                        "Pemindaian Vektor Wajah Kepala Sekolah",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (state.cameras.length > 1)
+                        IconButton(
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.flip_camera_ios_outlined,
+                            color: Colors.tealAccent,
+                            size: 20,
+                          ),
+                          tooltip: 'Ganti Kamera',
+                          onPressed: controller.switchCamera,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 150,
+                      child: CameraPreview(state.cameraController!),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 24),
 
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.tealAccent,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            if (!state.showSigUpload)
+              _buildRegisteredCard(
+                title: "Tanda Tangan Kepala Sekolah",
+                icon: Icons.gesture,
+                onChange: controller.revertToSigUpload,
+              )
+            else
+              SignatureUploadWidget(
+                title: 'Tanda Tangan Kepala Sekolah (Wajib)',
+                controller: kepsekSigController,
+              ),
+            const SizedBox(height: 32),
+
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.tealAccent,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  controller.verifyNewKepsek(
+                    sigController: kepsekSigController,
+                    name: kepsekController.text.trim(),
+                    year: tahunController.text.trim(),
+                    whatsapp: whatsappController.text.trim(),
+                    gender: gender,
+                    context: context,
+                    onSetupComplete: onSetupComplete,
+                  );
+                }
+              },
+              child: const Text(
+                'VERIFIKASI & LANJUTKAN',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                controller.verifyNewKepsek(
-                  sigController: kepsekSigController,
-                  name: kepsekController.text.trim(),
-                  year: tahunController.text.trim(),
-                  whatsapp: whatsappController.text.trim(),
-                  gender: gender,
-                  context: context,
-                  onSetupComplete: onSetupComplete,
-                );
-              }
-            },
-            child: const Text(
-              'VERIFIKASI & LANJUTKAN',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                ref.read(setupControllerProvider.notifier).resetHasCheckedStatus();
+              },
+              child: const Text(
+                'Kembali ke Pengisian Nama',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        content,
+        if (state.isSaving)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black87,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      CircularProgressIndicator(color: Colors.tealAccent),
+                      SizedBox(height: 20),
+                      Text(
+                        "Mencocokkan Wajah & Tanda Tangan...",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Mohon tunggu sebentar",
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () {
-              ref.read(setupControllerProvider.notifier).resetHasCheckedStatus();
-            },
-            child: const Text(
-              'Kembali ke Pengisian Nama',
-              style: TextStyle(color: Colors.white54),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

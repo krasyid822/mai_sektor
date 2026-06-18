@@ -293,7 +293,6 @@ class AttendanceController extends Notifier<AttendanceState> {
     final role = state.role;
 
     state = state.copyWith(
-      isCameraInitialized: false,
       isSubmitting: true,
     );
 

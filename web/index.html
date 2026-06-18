@@ -41,6 +41,200 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <!-- Face API JS script -->
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js" crossorigin="anonymous"></script>
+  <script>
+    let modelsLoaded = false;
+    let activeVideo = null;
+    let activeCanvas = null;
+    let activeCtx = null;
+    let tracking = false;
+
+    async function loadModels() {
+      if (modelsLoaded) return;
+      
+      // Get base href to resolve correct path for models
+      const baseHref = document.querySelector('base') ? document.querySelector('base').getAttribute('href') : '/';
+      const modelsUrl = baseHref.endsWith('/') ? baseHref + 'models' : baseHref + '/models';
+
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(modelsUrl),
+        faceapi.nets.faceLandmark68Net.loadFromUri(modelsUrl),
+        faceapi.nets.faceRecognitionNet.loadFromUri(modelsUrl)
+      ]);
+      modelsLoaded = true;
+    }
+
+    async function startTracking(videoElement) {
+      if (activeVideo === videoElement) return;
+      stopTracking();
+
+      activeVideo = videoElement;
+      activeCanvas = document.createElement('canvas');
+      activeCanvas.style.position = 'absolute';
+      activeCanvas.style.pointerEvents = 'none';
+      activeCanvas.style.zIndex = '99999';
+
+      updateCanvasPosition();
+
+      videoElement.parentNode.appendChild(activeCanvas);
+      activeCtx = activeCanvas.getContext('2d');
+
+      await loadModels();
+
+      tracking = true;
+      runTrackingLoop();
+    }
+
+    function updateCanvasPosition() {
+      if (!activeVideo || !activeCanvas) return;
+      activeCanvas.style.left = activeVideo.offsetLeft + 'px';
+      activeCanvas.style.top = activeVideo.offsetTop + 'px';
+      activeCanvas.style.width = activeVideo.offsetWidth + 'px';
+      activeCanvas.style.height = activeVideo.offsetHeight + 'px';
+      activeCanvas.width = activeVideo.videoWidth || activeVideo.offsetWidth;
+      activeCanvas.height = activeVideo.videoHeight || activeVideo.offsetHeight;
+
+      const videoStyle = window.getComputedStyle(activeVideo);
+      activeCanvas.style.transform = videoStyle.transform;
+      activeCanvas.style.transformOrigin = videoStyle.transformOrigin;
+      activeCanvas.style.objectFit = videoStyle.objectFit;
+      activeCanvas.style.objectPosition = videoStyle.objectPosition;
+      activeCanvas.style.borderRadius = videoStyle.borderRadius;
+    }
+
+    async function runTrackingLoop() {
+      while (tracking && activeVideo) {
+        if (activeVideo.readyState >= 2) {
+          try {
+            const detection = await faceapi.detectSingleFace(
+              activeVideo,
+              new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+            ).withFaceLandmarks();
+
+            if (!activeVideo || !activeCanvas || !activeCtx) return;
+
+            activeCtx.clearRect(0, 0, activeCanvas.width, activeCanvas.height);
+
+            if (detection) {
+              const resizedDetections = faceapi.resizeResults(detection, {
+                width: activeCanvas.width,
+                height: activeCanvas.height
+              });
+              // Customize colors for landmarks drawing
+              faceapi.draw.drawFaceLandmarks(activeCanvas, resizedDetections);
+            }
+          } catch (e) {
+            console.error("Tracker loop detection error:", e);
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    }
+
+    function stopTracking() {
+      tracking = false;
+      if (activeCanvas && activeCanvas.parentNode) {
+        activeCanvas.parentNode.removeChild(activeCanvas);
+      }
+      activeVideo = null;
+      activeCanvas = null;
+      activeCtx = null;
+    }
+
+    setInterval(() => {
+      const video = document.querySelector('video');
+      if (video) {
+        startTracking(video);
+        updateCanvasPosition();
+      } else {
+        stopTracking();
+      }
+    }, 500);
+
+    window.extractFaceVectorMediaPipe = async function(imageUrl) {
+      try {
+        await loadModels();
+
+        const img = new Image();
+        img.src = imageUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        const detection = await faceapi.detectSingleFace(
+          img,
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+        ).withFaceLandmarks().withFaceDescriptor();
+
+        if (!detection) {
+          console.warn("No face detected by face-api.js");
+          return JSON.stringify([]);
+        }
+
+        const descriptor = Array.from(detection.descriptor);
+        return JSON.stringify(descriptor);
+      } catch (e) {
+        console.error("extractFaceVectorFaceApi error:", e);
+        return JSON.stringify([]);
+      }
+    };
+
+    window.getGeolocationPositionJson = function(enableHighAccuracy, timeout, maximumAge) {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject('Geolocation is not supported by this browser.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            resolve(JSON.stringify({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            }));
+          },
+          (err) => {
+            reject('Geolocation error: ' + (err.message || err.code));
+          },
+          {
+            enableHighAccuracy: enableHighAccuracy || false,
+            timeout: timeout || 10000,
+            maximumAge: maximumAge || 0
+          }
+        );
+      });
+    };
+
+    window.checkGeolocationPermission = async function() {
+      if (!navigator.permissions) return 'prompt';
+      try {
+        const status = await navigator.permissions.query({ name: 'geolocation' });
+        return status.state;
+      } catch (e) {
+        return 'prompt';
+      }
+    };
+
+    window.extractFaceVectorMediaPipeCallback = function(imageUrl, callback) {
+      window.extractFaceVectorMediaPipe(imageUrl)
+        .then((resultJson) => callback(resultJson))
+        .catch((err) => {
+          console.error("Callback extract error:", err);
+          callback(JSON.stringify([]));
+        });
+    };
+
+    window.getGeolocationPositionCallback = function(enableHighAccuracy, timeout, maximumAge, callback) {
+      window.getGeolocationPositionJson(enableHighAccuracy, timeout, maximumAge)
+        .then((resultJson) => callback(resultJson))
+        .catch((err) => {
+          console.error("Callback location error:", err);
+          callback(JSON.stringify({ error: err.toString() }));
+        });
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
