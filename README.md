@@ -1,3 +1,5 @@
+![Screenshoot Halaman](./assets/demo/img_aa74fe46.png)
+
 # Prinsip Pengembangan
  - langsung connect ke firebase
  - terapkan prinsip riverpood dan satu file satu fitur sejak awal
